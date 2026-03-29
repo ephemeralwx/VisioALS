@@ -1,8 +1,3 @@
-"""
-main.py — Entry point for VisioALS.  Setup wizard on first run,
-faster-whisper model download, then launches the gaze tracking UI.
-"""
-
 import sys
 import os
 import json
@@ -22,10 +17,6 @@ from gaze import GazeTracker
 from backend import BackendClient
 from ui import MainWindow
 
-
-# ---------------------------------------------------------------------------
-# Config helpers
-# ---------------------------------------------------------------------------
 
 def _config_dir() -> str:
     base = os.environ.get("APPDATA", os.path.expanduser("~"))
@@ -56,10 +47,10 @@ def load_config() -> dict:
         try:
             with open(p, "r") as f:
                 cfg = json.load(f)
-            # backfill new keys
             for k, v in _DEFAULTS.items():
                 cfg.setdefault(k, v)
-            # always use the hardcoded API URL
+            # force the canonical url regardless of what's saved, don't want
+            # stale or hand-edited urls sneaking through
             cfg["api_url"] = _DEFAULTS["api_url"]
             return cfg
         except Exception:
@@ -72,10 +63,6 @@ def save_config(cfg: dict):
         json.dump(cfg, f, indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Global stylesheet — modern, warm, editorial aesthetic
-# ---------------------------------------------------------------------------
-
 _STYLESHEET = """
 QWizard {
     background-color: #FAFAF7;
@@ -84,7 +71,6 @@ QWizardPage {
     background-color: transparent;
 }
 
-/* — Typography — */
 QLabel {
     color: #1A1A1A;
     font-family: "Segoe UI", "SF Pro Display", "Helvetica Neue", sans-serif;
@@ -126,7 +112,6 @@ QLabel#bulletItem {
     padding: 4px 0px 4px 8px;
 }
 
-/* — Inputs — */
 QLineEdit {
     font-family: "Segoe UI", sans-serif;
     font-size: 14px;
@@ -145,7 +130,6 @@ QLineEdit::placeholder {
     color: #ACACAC;
 }
 
-/* — Buttons (wizard nav + custom) — */
 QPushButton {
     font-family: "Segoe UI", sans-serif;
     font-size: 13px;
@@ -176,13 +160,13 @@ QPushButton#secondaryBtn:hover {
     border-color: #BBBBBB;
 }
 
-/* — Progress bar — */
 QProgressBar {
     border: none;
     border-radius: 6px;
     background-color: #E8E8E3;
     height: 10px;
     text-align: center;
+    /* hides the default percentage text qt loves to show */
     font-size: 0px;
 }
 QProgressBar::chunk {
@@ -190,7 +174,6 @@ QProgressBar::chunk {
     background-color: #4D8B55;
 }
 
-/* — Webcam preview frame — */
 QLabel#webcamFrame {
     border: 2px solid #E0E0DB;
     border-radius: 14px;
@@ -199,10 +182,6 @@ QLabel#webcamFrame {
 }
 """
 
-
-# ---------------------------------------------------------------------------
-# Helpers for consistent page layout
-# ---------------------------------------------------------------------------
 
 def _make_step_label(step: int, total: int) -> QLabel:
     lbl = QLabel(f"STEP {step} OF {total}")
@@ -232,10 +211,6 @@ def _add_card_shadow(widget: QWidget):
     widget.setGraphicsEffect(shadow)
 
 
-# ---------------------------------------------------------------------------
-# Setup Wizard Pages
-# ---------------------------------------------------------------------------
-
 class WelcomePage(QWizardPage):
     def __init__(self):
         super().__init__()
@@ -258,7 +233,6 @@ class WelcomePage(QWizardPage):
 
         layout.addSpacing(28)
 
-        # Bullet items
         steps = [
             "Check that your webcam is working",
             "Connect to your backend server",
@@ -315,6 +289,7 @@ class WebcamPage(QWizardPage):
             ret, frame = cap.read()
             cap.release()
             if ret:
+                # mirror so the preview feels like looking in a mirror
                 frame = cv2.flip(frame, 1)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 h, w, ch = frame.shape
@@ -325,6 +300,7 @@ class WebcamPage(QWizardPage):
                 self._img_label.setPixmap(pix)
                 self._status.setText("Camera detected — looking good.")
                 self._status.setObjectName("statusOk")
+                # qt won't re-apply objectName style without this hack
                 self._status.setStyle(self._status.style())
                 self._ok = True
                 self.completeChanged.emit()
@@ -402,6 +378,7 @@ class ApiUrlPage(QWizardPage):
         self._test_status.setStyle(self._test_status.style())
         QApplication.processEvents()
 
+        # skip __init__ since we just need the url for a quick health check
         tmp = _BC.__new__(_BC)
         tmp.api_url = url.rstrip("/")
         ok = False
@@ -434,7 +411,7 @@ class SetupWizard(QWizard):
         self.setOption(QWizard.NoBackButtonOnStartPage, True)
         self.setOption(QWizard.NoCancelButton, False)
 
-        # Hide the default header/title area — we render our own
+        # empty pixmap kills the default header area qt insists on showing
         self.setPixmap(QWizard.LogoPixmap, QPixmap())
 
         self.addPage(WelcomePage())
@@ -442,16 +419,11 @@ class SetupWizard(QWizard):
 
         self.setStyleSheet(_STYLESHEET)
 
-        # Rename wizard buttons to match the tone
         self.setButtonText(QWizard.NextButton, "Continue")
         self.setButtonText(QWizard.BackButton, "Back")
         self.setButtonText(QWizard.FinishButton, "Get started")
         self.setButtonText(QWizard.CancelButton, "Quit")
 
-
-# ---------------------------------------------------------------------------
-# Model download dialog
-# ---------------------------------------------------------------------------
 
 class _DownloadWorker(QObject):
     progress = Signal(int)
@@ -470,7 +442,7 @@ class _DownloadWorker(QObject):
             self.progress.emit(100)
             self.finished.emit(True)
         except Exception as e:
-            print(f"[Download] Error: {e}")
+            print(f"whisper model download failed: {e}")
             self.finished.emit(False)
 
 
@@ -523,6 +495,7 @@ class ModelDownloadDialog(QDialog):
 
     def _on_done(self, ok: bool):
         self._thread.quit()
+        # 3s grace period so the thread doesn't get destroyed mid-cleanup
         self._thread.wait(3000)
         if ok:
             self._status.setText("Ready.")
@@ -537,12 +510,9 @@ class ModelDownloadDialog(QDialog):
             self.reject()
 
 
-# ---------------------------------------------------------------------------
-# Check if model already exists
-# ---------------------------------------------------------------------------
-
 def _model_exists(model_dir: str) -> bool:
-    """Heuristic: if the model dir has any .bin or .ct2 files, assume it's there."""
+    # rough check, just looks for .bin/.ct2 files anywhere under model dir.
+    # not bulletproof but faster_whisper re-downloads if anything is actually missing
     if not os.path.isdir(model_dir):
         return False
     for root, dirs, files in os.walk(model_dir):
@@ -552,17 +522,13 @@ def _model_exists(model_dir: str) -> bool:
     return False
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
 def main():
     app = QApplication(sys.argv)
+    # fusion looks consistent across windows versions, native style is a mess
     app.setStyle("Fusion")
 
     cfg = load_config()
 
-    # --- First-run wizard ---
     if not cfg.get("first_run_complete"):
         wiz = SetupWizard()
         if wiz.exec() != QWizard.Accepted:
@@ -570,14 +536,12 @@ def main():
         cfg["first_run_complete"] = True
         save_config(cfg)
 
-    # --- Model download ---
     mdir = _model_dir()
     if not _model_exists(mdir):
         dlg = ModelDownloadDialog(mdir)
         if dlg.exec() != QDialog.Accepted:
             sys.exit(0)
 
-    # --- Core objects ---
     gaze = GazeTracker()
     if not gaze.open_camera():
         QMessageBox.critical(None, "Error", "Cannot open webcam.")
@@ -585,7 +549,6 @@ def main():
 
     backend = BackendClient(api_url=cfg["api_url"], model_dir=mdir)
 
-    # --- Main window (starts maximized; press F11 to go fullscreen) ---
     win = MainWindow(gaze, backend)
     win.showMaximized()
 
