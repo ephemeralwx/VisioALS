@@ -1,5 +1,9 @@
 # VisioALS
 
+
+https://github.com/user-attachments/assets/110f49e3-8cbb-4189-aa53-1fe7800655af
+
+
 Eye-gaze communication tool for ALS patients. Uses a standard webcam to track eye movements and lets patients select responses by looking at on-screen options.
 
 ## How It Works
