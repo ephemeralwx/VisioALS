@@ -2,7 +2,8 @@
 
 Eye-gaze communication tool for ALS patients. Uses a standard webcam to track eye movements and lets patients select responses by looking at on-screen options.
 
-This software only works on Windows devices.
+This software only works on Windows devices. It is free to use. I tried to make it as low-setup as possible. 
+No need for an API key. 
 
 <video src="https://github.com/user-attachments/assets/55762027-76bf-466a-aeee-92e8c25af38f" width="100%" controls>
 </video>
