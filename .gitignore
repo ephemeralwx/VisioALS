@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+*.egg
+
+# Virtual environment
+env/
+venv/
+.venv/
+
+# PyInstaller build output
+build/
+dist/
+*.manifest
+
+# Inno Setup output
+installer_output/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code
+.claude/
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Secrets / local config
+.env
+*.env
+
+# Wrangler cache (contains account info)
+.wrangler/

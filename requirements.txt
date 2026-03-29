@@ -1,0 +1,9 @@
+PySide6
+opencv-python
+mediapipe
+numpy
+scikit-learn
+sounddevice
+pyttsx3
+faster-whisper
+requests

@@ -1,0 +1,10 @@
+name = "visioals-backend"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+OPENROUTER_MODEL = "openai/gpt-5.4-nano"
+
+[[kv_namespaces]]
+binding = "TELEMETRY"
+id = "0e59d7a5846e4470a55f27341a20192d"
