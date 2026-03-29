@@ -2,6 +2,11 @@
 
 Eye-gaze communication tool for ALS patients. Uses a standard webcam to track eye movements and lets patients select responses by looking at on-screen options.
 
+This software only works on Windows devices.
+
+<video src="NewVisioDeployedDemo.mp4" width="100%" controls>
+  Your browser does not support the video tag.
+</video>
 ## How It Works
 
 1. A caregiver asks a question via voice (recorded through the microphone)
