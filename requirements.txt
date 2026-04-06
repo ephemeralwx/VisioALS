@@ -7,3 +7,6 @@ sounddevice
 pyttsx3
 faster-whisper
 requests
+spacy>=3.7
+nltk>=3.8
+sentence-transformers>=2.2

@@ -59,6 +59,9 @@ class BackendClient:
         question: str,
         history: list[dict] | None = None,
         rejected: list[str] | None = None,
+        linguistic_profile_summary: str | None = None,
+        exemplars: list[str] | None = None,
+        preference_rules: list[str] | None = None,
     ) -> list[str]:
         try:
             body: dict = {"question": question}
@@ -66,6 +69,12 @@ class BackendClient:
                 body["history"] = history
             if rejected:
                 body["rejected"] = rejected
+            if linguistic_profile_summary:
+                body["linguistic_profile_summary"] = linguistic_profile_summary
+            if exemplars:
+                body["exemplars"] = exemplars
+            if preference_rules:
+                body["preference_rules"] = preference_rules
             r = requests.post(
                 f"{self.api_url}/generate-options",
                 json=body,
@@ -87,11 +96,17 @@ class BackendClient:
         question: str,
         response: str,
         history: list[dict] | None = None,
+        linguistic_profile_summary: str | None = None,
+        exemplars: list[str] | None = None,
     ) -> str:
         try:
             body: dict = {"question": question, "response": response}
             if history:
                 body["history"] = history
+            if linguistic_profile_summary:
+                body["linguistic_profile_summary"] = linguistic_profile_summary
+            if exemplars:
+                body["exemplars"] = exemplars
             r = requests.post(
                 f"{self.api_url}/expand-response",
                 json=body,
@@ -178,6 +193,39 @@ class BackendClient:
                 os.unlink(tmp_path)
             except OSError:
                 pass
+
+    def analyze_style(self, sample_texts: list[str]) -> dict:
+        """Call /analyze-style for subjective linguistic analysis."""
+        try:
+            r = requests.post(
+                f"{self.api_url}/analyze-style",
+                json={"sample_texts": sample_texts},
+                timeout=30,
+            )
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            print(f"api analyze_style failed: {e}")
+            return {
+                "humor_style": "unknown",
+                "tone_description": "unknown",
+                "emotional_valence": "neutral",
+                "personality_notes": "",
+            }
+
+    def analyze_preferences(self, interactions: list[dict]) -> list[str]:
+        """Call /analyze-preferences to extract preference rules from interaction history."""
+        try:
+            r = requests.post(
+                f"{self.api_url}/analyze-preferences",
+                json={"interactions": interactions},
+                timeout=30,
+            )
+            r.raise_for_status()
+            return r.json().get("rules", [])
+        except Exception as e:
+            print(f"api analyze_preferences failed: {e}")
+            return []
 
     def speak(self, text: str):
         self._tts_worker.request_speak.emit(text)

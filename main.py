@@ -5,7 +5,8 @@ import json
 from PySide6.QtWidgets import (
     QApplication, QWizard, QWizardPage, QLabel, QLineEdit, QPushButton,
     QVBoxLayout, QHBoxLayout, QDialog, QProgressBar, QMessageBox,
-    QWidget, QGraphicsDropShadowEffect,
+    QWidget, QGraphicsDropShadowEffect, QFileDialog, QTextEdit,
+    QScrollArea,
 )
 from PySide6.QtCore import Qt, QThread, Signal, QObject
 from PySide6.QtGui import QPixmap, QImage, QColor
@@ -39,6 +40,8 @@ _DEFAULTS = {
     "api_url": "https://visioals-backend.visioals.workers.dev",
     "first_run_complete": False,
     "tracking_mode": "eye",
+    "active_patient": None,
+    "preference_update_interval": 20,
 }
 
 
@@ -510,6 +513,303 @@ class ModelDownloadDialog(QDialog):
             self.reject()
 
 
+class _OnboardingWorker(QObject):
+    progress = Signal(int)
+    finished = Signal(object)  # emits the profile dict or None
+
+    def __init__(self, patient_name: str, api_url: str, model_dir: str):
+        super().__init__()
+        self._patient_name = patient_name
+        self._api_url = api_url
+        self._model_dir = model_dir
+
+    def run(self):
+        try:
+            from patient_data import PatientDataManager
+            from linguistic_profile import LinguisticProfileExtractor
+            from embeddings import EmbeddingProvider, CorpusIndex
+
+            pm = PatientDataManager(self._patient_name)
+            corpus = pm.load_corpus()
+            if not corpus:
+                self.finished.emit(None)
+                return
+
+            self.progress.emit(5)
+
+            # generate linguistic profile
+            extractor = LinguisticProfileExtractor(corpus, self._api_url)
+            profile = extractor.extract(progress_callback=lambda p: self.progress.emit(int(p * 0.5)))
+            pm.save_linguistic_profile(profile)
+            self.progress.emit(55)
+
+            # build embedding index
+            provider = EmbeddingProvider(cache_dir=self._model_dir)
+            index = CorpusIndex(pm.embeddings_dir, provider)
+            index.build_index(corpus, progress_callback=lambda p: self.progress.emit(55 + int(p * 0.45)))
+            self.progress.emit(100)
+            self.finished.emit(profile)
+        except Exception as e:
+            print(f"onboarding failed: {e}")
+            import traceback; traceback.print_exc()
+            self.finished.emit(None)
+
+
+class PatientOnboardingDialog(QDialog):
+    def __init__(self, backend, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Patient Profile Setup")
+        self.setFixedSize(520, 440)
+        self.setModal(True)
+        self.setStyleSheet(_STYLESHEET + "QDialog { background-color: #FAFAF7; }")
+        self._backend = backend
+        self._name = ""
+        self._thread = None
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(36, 28, 36, 24)
+        layout.setSpacing(0)
+
+        title = QLabel("Set Up Patient Profile")
+        title.setObjectName("pageTitle")
+        title.setStyleSheet("font-size: 22px;")
+        layout.addWidget(title)
+        layout.addSpacing(4)
+
+        sub = QLabel("Import a patient's past writing to personalize generated responses.")
+        sub.setObjectName("pageSubtitle")
+        sub.setWordWrap(True)
+        layout.addWidget(sub)
+        layout.addSpacing(16)
+
+        # patient name
+        name_label = QLabel("Patient name:")
+        name_label.setStyleSheet("font-size: 13px; font-weight: 600;")
+        layout.addWidget(name_label)
+        layout.addSpacing(4)
+        self._name_input = QLineEdit()
+        self._name_input.setPlaceholderText("e.g. John")
+        layout.addWidget(self._name_input)
+        layout.addSpacing(12)
+
+        # import button
+        self._import_btn = QPushButton("Import Text Corpus")
+        self._import_btn.setObjectName("secondaryBtn")
+        self._import_btn.clicked.connect(self._on_import)
+        layout.addWidget(self._import_btn)
+        self._import_status = QLabel("")
+        self._import_status.setObjectName("pageSubtitle")
+        layout.addWidget(self._import_status)
+        layout.addSpacing(12)
+
+        # generate button
+        self._generate_btn = QPushButton("Generate Profile")
+        self._generate_btn.clicked.connect(self._on_generate)
+        self._generate_btn.setEnabled(False)
+        layout.addWidget(self._generate_btn)
+        layout.addSpacing(8)
+
+        self._bar = QProgressBar()
+        self._bar.setRange(0, 100)
+        self._bar.setFixedHeight(10)
+        self._bar.setVisible(False)
+        layout.addWidget(self._bar)
+        layout.addSpacing(4)
+
+        self._status = QLabel("")
+        self._status.setObjectName("pageSubtitle")
+        layout.addWidget(self._status)
+
+        # summary display
+        self._summary = QTextEdit()
+        self._summary.setReadOnly(True)
+        self._summary.setMaximumHeight(80)
+        self._summary.setStyleSheet("font-size: 12px; border: 1px solid #D5D5D0; border-radius: 6px; padding: 6px;")
+        self._summary.setVisible(False)
+        layout.addWidget(self._summary)
+
+        layout.addStretch(1)
+
+        # done button
+        row = QHBoxLayout()
+        row.addStretch()
+        self._done_btn = QPushButton("Done")
+        self._done_btn.setEnabled(False)
+        self._done_btn.clicked.connect(self.accept)
+        row.addWidget(self._done_btn)
+        layout.addLayout(row)
+
+        self._name_input.textChanged.connect(self._check_ready)
+
+    def patient_name(self) -> str:
+        return self._name
+
+    def _check_ready(self):
+        name = self._name_input.text().strip()
+        has_name = len(name) > 0
+        self._generate_btn.setEnabled(has_name)
+
+    def _on_import(self):
+        name = self._name_input.text().strip()
+        if not name:
+            QMessageBox.warning(self, "Error", "Enter a patient name first.")
+            return
+
+        path = QFileDialog.getExistingDirectory(self, "Select corpus directory")
+        if not path:
+            # try single file
+            path, _ = QFileDialog.getOpenFileName(
+                self, "Select corpus file", "", "Text files (*.txt *.json *.csv)"
+            )
+        if not path:
+            return
+
+        from patient_data import PatientDataManager
+        import shutil
+
+        pm = PatientDataManager(name)
+        if os.path.isdir(path):
+            # copy all supported files into corpus dir
+            for fname in os.listdir(path):
+                if fname.lower().endswith((".txt", ".json", ".csv")):
+                    shutil.copy2(os.path.join(path, fname), pm.corpus_dir)
+        else:
+            shutil.copy2(path, pm.corpus_dir)
+
+        corpus = pm.load_corpus()
+        self._import_status.setText(f"Imported {len(corpus)} text snippets.")
+        self._import_status.setObjectName("statusOk")
+        self._import_status.setStyle(self._import_status.style())
+        self._check_ready()
+
+    def _on_generate(self):
+        name = self._name_input.text().strip()
+        if not name:
+            return
+        self._name = name
+        self._bar.setVisible(True)
+        self._bar.setValue(0)
+        self._status.setText("Generating profile and embeddings...")
+        self._generate_btn.setEnabled(False)
+        self._import_btn.setEnabled(False)
+
+        self._thread = QThread()
+        worker = _OnboardingWorker(name, self._backend.api_url, _model_dir())
+        worker.moveToThread(self._thread)
+        self._thread.started.connect(worker.run)
+        worker.progress.connect(self._bar.setValue)
+        worker.finished.connect(self._on_done)
+        worker.finished.connect(self._thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        self._thread.finished.connect(self._thread.deleteLater)
+        self._thread.start()
+
+    def _on_done(self, profile):
+        if profile:
+            self._status.setText("Profile generated successfully.")
+            self._status.setObjectName("statusOk")
+            self._summary.setVisible(True)
+            self._summary.setPlainText(profile.get("summary", "(no summary)"))
+            self._done_btn.setEnabled(True)
+        else:
+            self._status.setText("Failed — check corpus directory has text files.")
+            self._status.setObjectName("statusErr")
+            self._generate_btn.setEnabled(True)
+            self._import_btn.setEnabled(True)
+        self._status.setStyle(self._status.style())
+
+
+class PreferenceViewerDialog(QDialog):
+    def __init__(self, patient_data, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Learned Preferences")
+        self.setFixedSize(460, 380)
+        self.setModal(True)
+        self.setStyleSheet(_STYLESHEET + "QDialog { background-color: #FAFAF7; }")
+        self._patient_data = patient_data
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 24, 32, 20)
+        layout.setSpacing(0)
+
+        title = QLabel("Preference Rules")
+        title.setObjectName("pageTitle")
+        title.setStyleSheet("font-size: 20px;")
+        layout.addWidget(title)
+        layout.addSpacing(4)
+
+        sub = QLabel(f"Patient: {patient_data.patient_name}")
+        sub.setObjectName("pageSubtitle")
+        layout.addWidget(sub)
+        layout.addSpacing(12)
+
+        # load preferences
+        pref = patient_data.load_preference_profile()
+        rules = pref.get("rules", []) if pref else []
+        last_updated = pref.get("last_updated") if pref else None
+        interaction_count = pref.get("interaction_count", 0) if pref else 0
+
+        if last_updated:
+            import time as _t
+            ts = _t.strftime("%Y-%m-%d %H:%M", _t.localtime(last_updated))
+            meta = QLabel(f"Last updated: {ts}  \u00b7  Based on {interaction_count} interactions")
+        else:
+            meta = QLabel("No preferences learned yet.")
+        meta.setObjectName("pageSubtitle")
+        meta.setStyleSheet("font-size: 12px;")
+        layout.addWidget(meta)
+        layout.addSpacing(12)
+
+        # rules list
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setStyleSheet("QScrollArea { border: 1px solid #D5D5D0; border-radius: 8px; background: #FFF; }")
+        inner = QWidget()
+        inner_layout = QVBoxLayout(inner)
+        inner_layout.setContentsMargins(16, 12, 16, 12)
+        inner_layout.setSpacing(6)
+
+        if rules:
+            for rule in rules:
+                lbl = QLabel(f"\u2022  {rule}")
+                lbl.setWordWrap(True)
+                lbl.setStyleSheet("font-size: 13px; color: #2A2A2A;")
+                inner_layout.addWidget(lbl)
+        else:
+            lbl = QLabel("No preference rules yet. They will be generated after 20+ interactions.")
+            lbl.setWordWrap(True)
+            lbl.setStyleSheet("font-size: 13px; color: #888;")
+            inner_layout.addWidget(lbl)
+
+        inner_layout.addStretch()
+        scroll.setWidget(inner)
+        layout.addWidget(scroll)
+        layout.addSpacing(12)
+
+        # buttons
+        row = QHBoxLayout()
+        if rules:
+            clear_btn = QPushButton("Clear Preferences")
+            clear_btn.setObjectName("secondaryBtn")
+            clear_btn.clicked.connect(self._on_clear)
+            row.addWidget(clear_btn)
+        row.addStretch()
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(self.accept)
+        row.addWidget(close_btn)
+        layout.addLayout(row)
+
+    def _on_clear(self):
+        reply = QMessageBox.question(
+            self, "Clear Preferences",
+            "This will delete all learned preference rules. The system will re-learn from future interactions.\n\nContinue?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+        )
+        if reply == QMessageBox.Yes:
+            self._patient_data.delete_preference_profile()
+            self.accept()
+
+
 def _model_exists(model_dir: str) -> bool:
     # rough check, just looks for .bin/.ct2 files anywhere under model dir.
     # not bulletproof but faster_whisper re-downloads if anything is actually missing
@@ -554,7 +854,24 @@ def main():
 
     backend = BackendClient(api_url=cfg["api_url"], model_dir=mdir)
 
-    win = MainWindow(gaze, backend, cfg, save_config)
+    # load active patient context if one is configured
+    patient_data = None
+    corpus_index = None
+    active_patient = cfg.get("active_patient")
+    if active_patient:
+        from patient_data import PatientDataManager
+        from embeddings import EmbeddingProvider, CorpusIndex
+        patient_data = PatientDataManager(active_patient)
+        if patient_data.load_linguistic_profile() is not None:
+            provider = EmbeddingProvider(cache_dir=mdir)
+            corpus_index = CorpusIndex(patient_data.embeddings_dir, provider)
+            if corpus_index.is_built():
+                corpus_index.load_index()
+            else:
+                corpus_index = None
+        print(f"active patient: {active_patient}")
+
+    win = MainWindow(gaze, backend, cfg, save_config, patient_data, corpus_index)
     win.showMaximized()
 
     sys.exit(app.exec())

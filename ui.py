@@ -86,6 +86,15 @@ class GazeScreen(QWidget):
         self._conversation_history: list[dict] = []  # [{question, answer}, ...]
         self._rejected_options: list[str] = []
 
+        # patient identity & preference context
+        self._patient_data = None          # PatientDataManager | None
+        self._corpus_index = None          # CorpusIndex | None
+        self._linguistic_profile: dict | None = None
+        self._preference_rules: list[str] | None = None
+        self._interaction_counter: int = 0
+        self._preference_update_interval: int = 20
+        self._rejection_round: int = 0
+
         self.timers = {k: 0.0 for k in ["top_left", "top_right", "bottom_left", "bottom_right", "none"]}
         self._last_tick = time.time()
 
@@ -98,6 +107,63 @@ class GazeScreen(QWidget):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
         self._timer.start(33)
+
+    def set_patient_context(self, patient_data, corpus_index=None):
+        """Load patient identity context for prompt personalization."""
+        self._patient_data = patient_data
+        self._corpus_index = corpus_index
+        self._linguistic_profile = patient_data.load_linguistic_profile() if patient_data else None
+        pref = patient_data.load_preference_profile() if patient_data else None
+        self._preference_rules = pref.get("rules", []) if pref else None
+        self._interaction_counter = patient_data.interaction_count() if patient_data else 0
+        print(f"patient context loaded: profile={'yes' if self._linguistic_profile else 'no'}, "
+              f"index={'yes' if corpus_index else 'no'}, "
+              f"prefs={len(self._preference_rules) if self._preference_rules else 0} rules, "
+              f"interactions={self._interaction_counter}")
+
+    def _get_identity_kwargs(self, include_prefs: bool = True) -> dict:
+        """Build the identity keyword args for backend API calls."""
+        kwargs = {}
+        if self._linguistic_profile:
+            kwargs["linguistic_profile_summary"] = self._linguistic_profile.get("summary")
+        if self._corpus_index and self.context:
+            kwargs["exemplars"] = self._corpus_index.retrieve(self.context, top_k=5)
+        if include_prefs and self._preference_rules:
+            kwargs["preference_rules"] = self._preference_rules
+        return kwargs
+
+    def _log_and_maybe_update(self, question, options_presented, selected, rejected, rejection_round):
+        """Log interaction and trigger preference update if needed."""
+        if not self._patient_data:
+            return
+        self._patient_data.log_interaction({
+            "question": question,
+            "options_presented": options_presented,
+            "selected": selected,
+            "rejected": rejected,
+            "rejection_round": rejection_round,
+        })
+        self._interaction_counter += 1
+
+        if (self._interaction_counter >= 20 and
+                self._interaction_counter % self._preference_update_interval == 0):
+            interactions = self._patient_data.load_interactions(last_n=100)
+
+            def do_analysis(data):
+                return self.backend.analyze_preferences(data)
+
+            def on_prefs(result):
+                if result:
+                    self._preference_rules = result
+                    self._patient_data.save_preference_profile({
+                        "rules": result,
+                        "last_updated": __import__("time").time(),
+                        "interaction_count": self._interaction_counter,
+                    })
+                    print(f"preference rules updated: {result}")
+
+            ref = _run_in_thread(do_analysis, on_prefs, interactions)
+            self._threads.append(ref)
 
     def _update_geometry(self):
         self.sw = self.width()
@@ -220,8 +286,21 @@ class GazeScreen(QWidget):
 
         question = self.context
         history = list(self._conversation_history)
+        options_snapshot = list(self.responses)
         self._conversation_history.append({"question": question, "answer": selected})
+        rejected_snapshot = list(self._rejected_options)
         self._rejected_options = []
+
+        # log interaction and maybe update preferences
+        self._log_and_maybe_update(
+            question, options_snapshot, selected, rejected_snapshot, self._rejection_round,
+        )
+        self._rejection_round = 0
+
+        identity = self._get_identity_kwargs(include_prefs=False)
+
+        def do_expand():
+            return self.backend.expand_response(question, selected, history, **identity)
 
         def on_expanded(result):
             text = result if result else selected
@@ -232,7 +311,7 @@ class GazeScreen(QWidget):
             self.status_text = "Press SPACE to ask a new question."
             self.update()
 
-        ref = _run_in_thread(self.backend.expand_response, on_expanded, question, selected, history)
+        ref = _run_in_thread(do_expand, on_expanded)
         self._threads.append(ref)
 
     def _on_none_of_these(self):
@@ -242,11 +321,25 @@ class GazeScreen(QWidget):
         self._selection_locked = True
         self._reset_timers()
         self.status_text = "Getting new options..."
+
+        options_snapshot = list(self.responses)
         self._rejected_options.extend(self.responses)
         self.responses = []
 
+        # log the rejection
+        self._log_and_maybe_update(
+            self.context, options_snapshot, None, options_snapshot, self._rejection_round,
+        )
+        self._rejection_round += 1
+
         rejected = list(self._rejected_options)
         history = list(self._conversation_history)
+        identity = self._get_identity_kwargs(include_prefs=True)
+
+        def do_generate():
+            return self.backend.generate_options(
+                self.context, history, rejected, **identity,
+            )
 
         def on_new_options(result):
             if result:
@@ -255,10 +348,7 @@ class GazeScreen(QWidget):
             self.status_text = ""
             self.update()
 
-        ref = _run_in_thread(
-            self.backend.generate_options, on_new_options,
-            self.context, history, rejected,
-        )
+        ref = _run_in_thread(do_generate, on_new_options)
         self._threads.append(ref)
 
     def _reset_timers(self):
@@ -269,10 +359,15 @@ class GazeScreen(QWidget):
         self.context = question
         self.responses = []
         self._rejected_options = []
+        self._rejection_round = 0
         self.status_text = "Getting responses..."
         self.update()
 
         history = list(self._conversation_history)
+        identity = self._get_identity_kwargs(include_prefs=True)
+
+        def do_generate():
+            return self.backend.generate_options(question, history, **identity)
 
         def on_options(result):
             if result:
@@ -280,7 +375,7 @@ class GazeScreen(QWidget):
             self.status_text = ""
             self.update()
 
-        ref = _run_in_thread(self.backend.generate_options, on_options, question, history)
+        ref = _run_in_thread(do_generate, on_options)
         self._threads.append(ref)
 
     def paintEvent(self, event):
@@ -412,15 +507,19 @@ class GazeScreen(QWidget):
 
 class MainWindow(QMainWindow):
     def __init__(self, gaze_tracker: GazeTracker, backend: BackendClient,
-                 cfg=None, save_config_fn=None):
+                 cfg=None, save_config_fn=None,
+                 patient_data=None, corpus_index=None):
         super().__init__()
         self.setWindowTitle("VisioALS")
         self.gaze = gaze_tracker
         self.backend = backend
         self._cfg = cfg
         self._save_config = save_config_fn
+        self._patient_data = patient_data
 
         self.screen = GazeScreen(gaze_tracker, backend)
+        if patient_data:
+            self.screen.set_patient_context(patient_data, corpus_index)
         self.setCentralWidget(self.screen)
 
         self._session_start = time.time()
@@ -479,6 +578,37 @@ class MainWindow(QMainWindow):
                 self.showMaximized()
             else:
                 self.showFullScreen()
+
+        elif key == Qt.Key_P and self.screen.phase in ("waiting", "tracking"):
+            from main import PatientOnboardingDialog
+            dlg = PatientOnboardingDialog(self.backend, parent=self)
+            if dlg.exec() == 1:  # QDialog.Accepted
+                patient_name = dlg.patient_name()
+                if patient_name and self._cfg is not None:
+                    self._cfg["active_patient"] = patient_name
+                    if self._save_config:
+                        self._save_config(self._cfg)
+                    from patient_data import PatientDataManager
+                    from embeddings import EmbeddingProvider, CorpusIndex
+                    pd = PatientDataManager(patient_name)
+                    ci = None
+                    if pd.load_linguistic_profile() is not None:
+                        provider = EmbeddingProvider()
+                        ci = CorpusIndex(pd.embeddings_dir, provider)
+                        if ci.is_built():
+                            ci.load_index()
+                        else:
+                            ci = None
+                    self._patient_data = pd
+                    self.screen.set_patient_context(pd, ci)
+                    self.screen.status_text = f"Patient profile loaded: {patient_name}"
+                    self.screen.update()
+
+        elif key == Qt.Key_V and self.screen.phase in ("waiting", "tracking"):
+            if self.screen._patient_data:
+                from main import PreferenceViewerDialog
+                dlg = PreferenceViewerDialog(self.screen._patient_data, parent=self)
+                dlg.exec()
 
         elif key == Qt.Key_Q or key == Qt.Key_Escape:
             self.close()
