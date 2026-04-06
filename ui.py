@@ -146,7 +146,7 @@ class GazeScreen(QWidget):
             if detected and not self.calibration.is_complete():
                 dot = self.calibration.get_dot_position()
                 if dot is not None:
-                    self.calibration.record_sample(norm[0], norm[1], dot[0], dot[1])
+                    self.calibration.record_sample(norm, dot[0], dot[1])
             if self.calibration.is_complete():
                 data = self.calibration.get_calibration_data()
                 self.gaze.calibration_data = data
@@ -301,6 +301,12 @@ class GazeScreen(QWidget):
         p.setPen(TEXT_COLOR)
         p.drawText(self.rect(), Qt.AlignCenter, "Press SPACE to begin calibration")
 
+        mode_label = "Eye Tracking" if self.gaze.mode == "eye" else "Head Tracking"
+        p.setFont(QFont("Segoe UI", 14))
+        p.setPen(QColor(100, 100, 100))
+        p.drawText(QRectF(0, self.sh * 0.58, self.sw, 30), Qt.AlignCenter,
+                   f"Mode: {mode_label}  \u2022  Press M to switch")
+
     def _paint_calibration(self, p: QPainter):
         if self.calibration is None:
             p.setFont(QFont("Segoe UI", 16))
@@ -310,7 +316,8 @@ class GazeScreen(QWidget):
 
         p.setFont(QFont("Segoe UI", 20))
         p.setPen(TEXT_COLOR)
-        p.drawText(QRectF(0, self.sh * 0.05, self.sw, 40), Qt.AlignCenter, "Follow the dot with your eyes")
+        cal_hint = "Follow the dot with your head" if self.gaze.mode == "head" else "Follow the dot with your eyes"
+        p.drawText(QRectF(0, self.sh * 0.05, self.sw, 40), Qt.AlignCenter, cal_hint)
 
         dot = self.calibration.get_dot_position()
         if dot is not None:
@@ -404,11 +411,14 @@ class GazeScreen(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, gaze_tracker: GazeTracker, backend: BackendClient):
+    def __init__(self, gaze_tracker: GazeTracker, backend: BackendClient,
+                 cfg=None, save_config_fn=None):
         super().__init__()
         self.setWindowTitle("VisioALS")
         self.gaze = gaze_tracker
         self.backend = backend
+        self._cfg = cfg
+        self._save_config = save_config_fn
 
         self.screen = GazeScreen(gaze_tracker, backend)
         self.setCentralWidget(self.screen)
@@ -448,6 +458,17 @@ class MainWindow(QMainWindow):
                     self._threads.append(ref)
                 else:
                     self.screen.status_text = "No audio recorded. Press SPACE to try again."
+            self.screen.update()
+
+        elif key == Qt.Key_M and self.screen.phase in ("waiting", "tracking"):
+            new_mode = "head" if self.gaze.mode == "eye" else "eye"
+            self.gaze.set_mode(new_mode)
+            self.screen._restart_calibration()
+            mode_label = "Head Tracking" if new_mode == "head" else "Eye Tracking"
+            self.screen.status_text = f"Switched to {mode_label}. Press SPACE to calibrate."
+            if self._cfg is not None and self._save_config is not None:
+                self._cfg["tracking_mode"] = new_mode
+                self._save_config(self._cfg)
             self.screen.update()
 
         elif key == Qt.Key_R:

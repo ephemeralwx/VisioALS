@@ -38,6 +38,7 @@ def _model_dir() -> str:
 _DEFAULTS = {
     "api_url": "https://visioals-backend.visioals.workers.dev",
     "first_run_complete": False,
+    "tracking_mode": "eye",
 }
 
 
@@ -227,7 +228,7 @@ class WelcomePage(QWizardPage):
         layout.addWidget(_make_title("Welcome to VisioALS"))
         layout.addSpacing(6)
         layout.addWidget(_make_subtitle(
-            "Eye-gaze communication for ALS patients.\n"
+            "Adaptive communication for ALS patients.\n"
             "We'll get you set up in just a moment."
         ))
 
@@ -235,7 +236,6 @@ class WelcomePage(QWizardPage):
 
         steps = [
             "Check that your webcam is working",
-            "Connect to your backend server",
         ]
         for i, text in enumerate(steps, 1):
             bullet = QLabel(f"{i}.  {text}")
@@ -265,7 +265,7 @@ class WebcamPage(QWizardPage):
         layout.addWidget(_make_title("Webcam check"))
         layout.addSpacing(4)
         layout.addWidget(_make_subtitle(
-            "We need camera access to track your eye movements."
+            "We need camera access for tracking."
         ))
         layout.addSpacing(20)
 
@@ -529,6 +529,11 @@ def main():
 
     cfg = load_config()
 
+    # cli override for tracking mode, used by installer's first launch
+    for arg in sys.argv[1:]:
+        if arg.startswith("--tracking-mode="):
+            cfg["tracking_mode"] = arg.split("=", 1)[1]
+
     if not cfg.get("first_run_complete"):
         wiz = SetupWizard()
         if wiz.exec() != QWizard.Accepted:
@@ -542,14 +547,14 @@ def main():
         if dlg.exec() != QDialog.Accepted:
             sys.exit(0)
 
-    gaze = GazeTracker()
+    gaze = GazeTracker(mode=cfg.get("tracking_mode", "eye"))
     if not gaze.open_camera():
         QMessageBox.critical(None, "Error", "Cannot open webcam.")
         sys.exit(1)
 
     backend = BackendClient(api_url=cfg["api_url"], model_dir=mdir)
 
-    win = MainWindow(gaze, backend)
+    win = MainWindow(gaze, backend, cfg, save_config)
     win.showMaximized()
 
     sys.exit(app.exec())

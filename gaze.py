@@ -92,6 +92,18 @@ def get_eye_position(landmarks, face_cx, face_cy, face_w, face_h):
     return norm_x, norm_y
 
 
+def get_head_position(landmarks, face_cx, face_cy, face_w, face_h):
+    # z-depth asymmetry between face sides gives yaw signal,
+    # nose vertical offset from face center gives pitch.
+    # ml models learn the mapping during calibration so sign doesn't matter
+    left_face = landmarks[234]
+    right_face = landmarks[454]
+    nose = landmarks[4]
+    norm_x = (right_face.z - left_face.z) / (face_w + 1e-6)
+    norm_y = (nose.y - face_cy) / (face_h + 1e-6)
+    return norm_x, norm_y
+
+
 class _LstsqModel:
     def __init__(self):
         self.coeffs = None
@@ -207,8 +219,8 @@ class MovingDotCalibration:
                 return int(x * self.screen_w), int(y * self.screen_h)
         return int(path[-1][0] * self.screen_w), int(path[-1][1] * self.screen_h)
 
-    def record_sample(self, norm_x: float, norm_y: float, dot_x: int, dot_y: int):
-        self.data_points.append(((norm_x, norm_y), (dot_x, dot_y)))
+    def record_sample(self, features, dot_x: int, dot_y: int):
+        self.data_points.append((features, (dot_x, dot_y)))
 
     def get_calibration_data(self) -> list:
         return list(self.data_points)
@@ -227,7 +239,8 @@ MODEL_WEIGHTS = {"LR": 0.35, "POLY": 0.25, "SVR": 0.25, "KNN": 0.15}
 
 
 class GazeTracker:
-    def __init__(self):
+    def __init__(self, mode="eye"):
+        self.mode = mode
         model_path = _get_model_path()
         base_options = mp_python.BaseOptions(model_asset_path=model_path)
         options = mp_vision.FaceLandmarkerOptions(
@@ -254,6 +267,7 @@ class GazeTracker:
         self.ensemble_position: tuple[int, int] | None = None
 
         self._face_lost_since: float | None = None
+        self._last_landmarks = None
 
     def open_camera(self) -> bool:
         self.cap = cv2.VideoCapture(0)
@@ -283,6 +297,7 @@ class GazeTracker:
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
         results = self._landmarker.detect(mp_image)
         if not results.face_landmarks:
+            self._last_landmarks = None
             return None
         lm = results.face_landmarks[0]
         face_cx = (lm[454].x + lm[234].x) / 2
@@ -290,8 +305,15 @@ class GazeTracker:
         face_w = abs(lm[454].x - lm[234].x)
         face_h = abs(lm[10].y - lm[152].y)
         if face_w < 1e-6 or face_h < 1e-6:
+            self._last_landmarks = None
             return None
+        self._last_landmarks = lm
+        if self.mode == "head":
+            return get_head_position(lm, face_cx, face_cy, face_w, face_h)
         return get_eye_position(lm, face_cx, face_cy, face_w, face_h)
+
+    def get_last_landmarks(self):
+        return self._last_landmarks
 
     def predict_gaze(self, norm_x: float, norm_y: float) -> tuple[int, int] | None:
         if self.models is None:
@@ -345,6 +367,10 @@ class GazeTracker:
             self._face_lost_since = time.time()
         return (time.time() - self._face_lost_since) > 3.0
 
+    def set_mode(self, mode):
+        self.mode = mode
+        self.reset_calibration()
+
     def reset_calibration(self):
         self.calibration_data = []
         self.models = None
@@ -361,3 +387,20 @@ class GazeTracker:
             print(f"not enough calibration data ({len(self.calibration_data)} pts)")
             return
         self.models = train_models(self.calibration_data)
+
+
+# --- head tracking ---
+
+def extract_head_features(landmarks):
+    """normalize face mesh landmarks for position/scale/distance invariance.
+    centers on nose tip and scales by inter-ocular distance so the feature
+    vector doesn't depend on where the face is in the frame."""
+    pts = np.array([(lm.x, lm.y, lm.z) for lm in landmarks])
+    pts = pts[:468]  # exclude iris landmarks — they encode gaze, not head pose
+    pts = pts - pts[4]  # center on nose tip
+    iod = np.linalg.norm(pts[133, :2] - pts[362, :2])
+    if iod > 1e-6:
+        pts = pts / iod
+    return pts.flatten()
+
+
