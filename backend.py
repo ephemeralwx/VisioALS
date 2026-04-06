@@ -54,11 +54,21 @@ class BackendClient:
         )
         self._tts_thread.start()
 
-    def generate_options(self, question: str) -> list[str]:
+    def generate_options(
+        self,
+        question: str,
+        history: list[dict] | None = None,
+        rejected: list[str] | None = None,
+    ) -> list[str]:
         try:
+            body: dict = {"question": question}
+            if history:
+                body["history"] = history
+            if rejected:
+                body["rejected"] = rejected
             r = requests.post(
                 f"{self.api_url}/generate-options",
-                json={"question": question},
+                json=body,
                 timeout=15,
             )
             r.raise_for_status()
@@ -72,11 +82,19 @@ class BackendClient:
             print(f"api generate_options failed: {e}")
             return ["(error)", "(error)", "(error)", "(error)"]
 
-    def expand_response(self, question: str, response: str) -> str:
+    def expand_response(
+        self,
+        question: str,
+        response: str,
+        history: list[dict] | None = None,
+    ) -> str:
         try:
+            body: dict = {"question": question, "response": response}
+            if history:
+                body["history"] = history
             r = requests.post(
                 f"{self.api_url}/expand-response",
-                json={"question": question, "response": response},
+                json=body,
                 timeout=15,
             )
             r.raise_for_status()

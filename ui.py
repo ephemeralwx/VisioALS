@@ -83,6 +83,9 @@ class GazeScreen(QWidget):
         self.is_recording = False
         self.status_text = ""
 
+        self._conversation_history: list[dict] = []  # [{question, answer}, ...]
+        self._rejected_options: list[str] = []
+
         self.timers = {k: 0.0 for k in ["top_left", "top_right", "bottom_left", "bottom_right", "none"]}
         self._last_tick = time.time()
 
@@ -215,6 +218,11 @@ class GazeScreen(QWidget):
         self._reset_timers()
         self.status_text = f"Selected: {selected}"
 
+        question = self.context
+        history = list(self._conversation_history)
+        self._conversation_history.append({"question": question, "answer": selected})
+        self._rejected_options = []
+
         def on_expanded(result):
             text = result if result else selected
             self.backend.speak(text)
@@ -224,7 +232,7 @@ class GazeScreen(QWidget):
             self.status_text = "Press SPACE to ask a new question."
             self.update()
 
-        ref = _run_in_thread(self.backend.expand_response, on_expanded, self.context, selected)
+        ref = _run_in_thread(self.backend.expand_response, on_expanded, question, selected, history)
         self._threads.append(ref)
 
     def _on_none_of_these(self):
@@ -234,7 +242,11 @@ class GazeScreen(QWidget):
         self._selection_locked = True
         self._reset_timers()
         self.status_text = "Getting new options..."
+        self._rejected_options.extend(self.responses)
         self.responses = []
+
+        rejected = list(self._rejected_options)
+        history = list(self._conversation_history)
 
         def on_new_options(result):
             if result:
@@ -243,7 +255,10 @@ class GazeScreen(QWidget):
             self.status_text = ""
             self.update()
 
-        ref = _run_in_thread(self.backend.generate_options, on_new_options, self.context)
+        ref = _run_in_thread(
+            self.backend.generate_options, on_new_options,
+            self.context, history, rejected,
+        )
         self._threads.append(ref)
 
     def _reset_timers(self):
@@ -253,8 +268,11 @@ class GazeScreen(QWidget):
     def on_question_ready(self, question: str):
         self.context = question
         self.responses = []
+        self._rejected_options = []
         self.status_text = "Getting responses..."
         self.update()
+
+        history = list(self._conversation_history)
 
         def on_options(result):
             if result:
@@ -262,7 +280,7 @@ class GazeScreen(QWidget):
             self.status_text = ""
             self.update()
 
-        ref = _run_in_thread(self.backend.generate_options, on_options, question)
+        ref = _run_in_thread(self.backend.generate_options, on_options, question, history)
         self._threads.append(ref)
 
     def paintEvent(self, event):

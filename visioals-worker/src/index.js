@@ -43,11 +43,28 @@ export default {
       }
 
       if (path === "/generate-options" && request.method === "POST") {
-        const { question } = await request.json();
+        const { question, history = [], rejected = [] } = await request.json();
         if (!question) return json({ error: "question is required" }, corsHeaders, 400);
 
+        let historyBlock = "";
+        if (history.length > 0) {
+          const pairs = history.slice(-5);
+          const lines = pairs.map(p => `  Q: "${p.question}" → A: "${p.answer}"`);
+          historyBlock = "Recent conversation:\n" + lines.join("\n") + "\n\n";
+        }
+
+        let rejectedBlock = "";
+        if (rejected.length > 0) {
+          rejectedBlock =
+            "The patient already rejected these options — do NOT repeat or rephrase them:\n" +
+            rejected.map(r => `"${r}"`).join(", ") + "\n" +
+            "Generate completely different answers.\n\n";
+        }
+
         const prompt =
+          historyBlock +
           `A caregiver asked an ALS patient: "${question}"\n\n` +
+          rejectedBlock +
           "Generate exactly 4 short possible answers the patient might want to give.\n" +
           "Rules:\n" +
           "- Each answer must be a brief phrase (2-8 words).\n" +
@@ -64,11 +81,19 @@ export default {
       }
 
       if (path === "/expand-response" && request.method === "POST") {
-        const { question, response } = await request.json();
+        const { question, response, history = [] } = await request.json();
         if (!question || !response)
           return json({ error: "question and response are required" }, corsHeaders, 400);
 
+        let historyBlock = "";
+        if (history.length > 0) {
+          const pairs = history.slice(-5);
+          const lines = pairs.map(p => `  Q: "${p.question}" → A: "${p.answer}"`);
+          historyBlock = "Recent conversation:\n" + lines.join("\n") + "\n\n";
+        }
+
         const prompt =
+          historyBlock +
           `A caregiver asked: "${question}"\n` +
           `The ALS patient selected this short answer: "${response}"\n\n` +
           "Turn the patient's short answer into a natural, complete sentence that answers the question. " +

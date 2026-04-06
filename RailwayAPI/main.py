@@ -33,8 +33,14 @@ MODEL = os.environ.get("OPENROUTER_MODEL", "openai/gpt-4.1-nano")
 # Request / response schemas
 # ---------------------------------------------------------------------------
 
+class QAPair(BaseModel):
+    question: str
+    answer: str
+
 class OptionsRequest(BaseModel):
     question: str
+    history: list[QAPair] = []
+    rejected: list[str] = []
 
 class OptionsResponse(BaseModel):
     options: list[str]
@@ -42,6 +48,7 @@ class OptionsResponse(BaseModel):
 class ExpandRequest(BaseModel):
     question: str
     response: str
+    history: list[QAPair] = []
 
 class ExpandResponse(BaseModel):
     expanded: str
@@ -73,8 +80,24 @@ def health():
 
 @app.post("/generate-options", response_model=OptionsResponse)
 def generate_options(req: OptionsRequest):
+    history_block = ""
+    if req.history:
+        pairs = req.history[-5:]  # last 5 Q&A pairs to keep prompt short
+        lines = [f"  Q: \"{p.question}\" → A: \"{p.answer}\"" for p in pairs]
+        history_block = "Recent conversation:\n" + "\n".join(lines) + "\n\n"
+
+    rejected_block = ""
+    if req.rejected:
+        rejected_block = (
+            "The patient already rejected these options — do NOT repeat or rephrase them:\n"
+            + ", ".join(f'"{r}"' for r in req.rejected) + "\n"
+            "Generate completely different answers.\n\n"
+        )
+
     prompt = (
+        f"{history_block}"
         f"A caregiver asked an ALS patient: \"{req.question}\"\n\n"
+        f"{rejected_block}"
         "Generate exactly 4 short possible answers the patient might want to give.\n"
         "Rules:\n"
         "- Each answer must be a brief phrase (2-8 words).\n"
@@ -106,7 +129,14 @@ def generate_options(req: OptionsRequest):
 
 @app.post("/expand-response", response_model=ExpandResponse)
 def expand_response(req: ExpandRequest):
+    history_block = ""
+    if req.history:
+        pairs = req.history[-5:]
+        lines = [f"  Q: \"{p.question}\" → A: \"{p.answer}\"" for p in pairs]
+        history_block = "Recent conversation:\n" + "\n".join(lines) + "\n\n"
+
     prompt = (
+        f"{history_block}"
         f"A caregiver asked: \"{req.question}\"\n"
         f"The ALS patient selected this short answer: \"{req.response}\"\n\n"
         "Turn the patient's short answer into a natural, complete sentence that answers the question. "
