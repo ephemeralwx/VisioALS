@@ -10,7 +10,7 @@ VisioALS uses a standard webcam — no special hardware — to let patients sele
 
 ## Quick Start (For Caregivers)
 
-VisioALS runs on any Windows 10/11 computer with a webcam. No technical knowledge required.
+VisioALS runs on any Windows 10/11 computer with a webcam. I tried my best to make it as easy to set up as possible. 
 
 1. **Download** the latest installer from the [Releases](../../releases) page
 2. **Run the installer** and follow the prompts
@@ -21,7 +21,8 @@ VisioALS runs on any Windows 10/11 computer with a webcam. No technical knowledg
 4. **Calibrate** — the patient looks at dots on screen so the system learns their eye movement
 5. **Start talking** — the caregiver speaks, the patient responds by looking
 
-That's it. No API keys, no configuration files, no terminal commands.
+That's it. 
+No API keys, no configuration files, no terminal commands.
 
 ---
 
@@ -43,9 +44,9 @@ The system supports both **eye tracking** and **head tracking**, so patients can
 
 ALS takes away the ability to speak, but it shouldn't take away *how* someone speaks. During setup, caregivers import samples of the patient's past writing — old texts, emails, social media posts, anything. VisioALS builds a detailed linguistic profile that captures:
 
-- **Vocabulary patterns** — word choices, favorite phrases, sentence length
-- **Tone and register** — how formal or casual they are, use of contractions, humor style
-- **Signature expressions** — catchphrases, filler words, how they open and close messages
+- **Vocabulary patterns**: word choices, favorite phrases, sentence length
+- **Tone and register**: how formal or casual they are, use of contractions, humor style
+- **Signature expressions**: catchphrases, filler words, how they open and close messages
 
 This profile is used every time the system generates response options, so the output sounds like the patient — their words, their style, their personality.
 
@@ -99,11 +100,11 @@ visioals-worker/        — Cloudflare Worker (API proxy)
 
 The `LinguisticProfileExtractor` analyzes a patient's writing corpus across five dimensions:
 
-1. **Vocabulary metrics** — average sentence length, type-token ratio (vocabulary diversity), distinctive words and phrases identified via TF-IDF analysis
-2. **Structural patterns** — distribution of sentence types (declarative, questions, fragments, imperatives), average response length
-3. **Register and tone** — formality score computed from contraction rate, average word length, and passive voice usage
-4. **Signature phrases** — most common filler words, sentence openers/closers, and recurring n-gram catchphrases
-5. **Subjective style** — humor style, emotional valence, and tone description via LLM analysis of representative samples
+1. **Vocabulary metrics**: average sentence length, type-token ratio (vocabulary diversity), distinctive words and phrases identified via TF-IDF analysis
+2. **Structural patterns**: distribution of sentence types (declarative, questions, fragments, imperatives), average response length
+3. **Register and tone**: formality score computed from contraction rate, average word length, and passive voice usage
+4. **Signature phrases**: most common filler words, sentence openers/closers, and recurring n-gram catchphrases
+5. **Subjective style**: humor style, emotional valence, and tone description via LLM analysis of representative samples
 
 The resulting profile is stored as JSON and summarized into a natural-language description that's included in every response generation prompt.
 
