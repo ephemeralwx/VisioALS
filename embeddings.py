@@ -1,32 +1,111 @@
 import os
 import json
+import urllib.request
 import numpy as np
+
+# onnx model files needed for all-MiniLM-L6-v2
+_HF_REPO = "sentence-transformers/all-MiniLM-L6-v2"
+_HF_BASE = f"https://huggingface.co/{_HF_REPO}/resolve/main"
+_FILES = {
+    "model.onnx": f"{_HF_BASE}/onnx/model.onnx",
+    "tokenizer.json": f"{_HF_BASE}/tokenizer.json",
+}
 
 
 class EmbeddingProvider:
-    """Thin wrapper around sentence-transformers for lazy loading."""
+    """Lightweight embedding provider using onnxruntime instead of full pytorch."""
 
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2", cache_dir: str | None = None):
-        self._model_name = model_name
+    def __init__(self, cache_dir: str | None = None):
         self._cache_dir = cache_dir
-        self._model = None
+        self._session = None
+        self._tokenizer = None
+
+    def _model_dir(self) -> str:
+        base = self._cache_dir or os.path.join(
+            os.environ.get("APPDATA", os.path.expanduser("~")),
+            "VisioALS", "models",
+        )
+        return os.path.join(base, "all-MiniLM-L6-v2")
+
+    def model_ready(self) -> bool:
+        mdir = self._model_dir()
+        return all(os.path.exists(os.path.join(mdir, f)) for f in _FILES)
+
+    def download_model(self, progress_callback=None):
+        """Download ONNX model files if missing. progress_callback(0-100)."""
+        mdir = self._model_dir()
+        os.makedirs(mdir, exist_ok=True)
+
+        files_to_download = [
+            (name, url) for name, url in _FILES.items()
+            if not os.path.exists(os.path.join(mdir, name))
+        ]
+        if not files_to_download:
+            if progress_callback:
+                progress_callback(100)
+            return
+
+        for i, (name, url) in enumerate(files_to_download):
+            dest = os.path.join(mdir, name)
+            print(f"downloading {name}...")
+            urllib.request.urlretrieve(url, dest)
+            print(f"downloaded {name}")
+            if progress_callback:
+                progress_callback(int(100 * (i + 1) / len(files_to_download)))
 
     def _load_model(self):
-        if self._model is not None:
+        if self._session is not None:
             return
-        from sentence_transformers import SentenceTransformer
-        self._model = SentenceTransformer(self._model_name, cache_folder=self._cache_dir)
-        print(f"embedding model loaded: {self._model_name}")
+
+        if not self.model_ready():
+            self.download_model()
+
+        import onnxruntime as ort
+        from tokenizers import Tokenizer
+
+        mdir = self._model_dir()
+        self._session = ort.InferenceSession(
+            os.path.join(mdir, "model.onnx"),
+            providers=["CPUExecutionProvider"],
+        )
+        self._tokenizer = Tokenizer.from_file(os.path.join(mdir, "tokenizer.json"))
+        self._tokenizer.enable_padding()
+        self._tokenizer.enable_truncation(max_length=256)
+        print("embedding model loaded: all-MiniLM-L6-v2 (onnx)")
 
     def encode(self, texts: list[str]) -> np.ndarray:
         """Encode a list of texts into an (N, dim) float32 array."""
         self._load_model()
-        return self._model.encode(texts, show_progress_bar=False, convert_to_numpy=True)
+        encodings = self._tokenizer.encode_batch(texts)
+
+        input_ids = np.array([e.ids for e in encodings], dtype=np.int64)
+        attention_mask = np.array([e.attention_mask for e in encodings], dtype=np.int64)
+        token_type_ids = np.zeros_like(input_ids)
+
+        # check which inputs the model actually expects
+        expected = {inp.name for inp in self._session.get_inputs()}
+        feeds = {"input_ids": input_ids, "attention_mask": attention_mask}
+        if "token_type_ids" in expected:
+            feeds["token_type_ids"] = token_type_ids
+
+        outputs = self._session.run(None, feeds)
+        token_embeddings = outputs[0]  # (batch, seq_len, 384)
+
+        # mean pooling with attention mask
+        mask = attention_mask[:, :, np.newaxis].astype(np.float32)
+        pooled = np.sum(token_embeddings * mask, axis=1) / np.maximum(
+            np.sum(mask, axis=1), 1e-9
+        )
+
+        # L2 normalize
+        norms = np.linalg.norm(pooled, axis=1, keepdims=True)
+        pooled = pooled / np.maximum(norms, 1e-9)
+
+        return pooled.astype(np.float32)
 
     def encode_single(self, text: str) -> np.ndarray:
         """Encode a single text into a (dim,) float32 array."""
-        self._load_model()
-        return self._model.encode([text], show_progress_bar=False, convert_to_numpy=True)[0]
+        return self.encode([text])[0]
 
 
 class CorpusIndex:

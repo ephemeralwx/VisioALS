@@ -178,8 +178,9 @@ class BackendClient:
         # faster-whisper needs a file path, can't take raw numpy audio
         tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
         tmp_path = tmp.name
+        tmp.close()  # close handle so whisper can read the file on windows
         try:
-            with wave.open(tmp, "wb") as wf:
+            with wave.open(tmp_path, "wb") as wf:
                 wf.setnchannels(1)
                 wf.setsampwidth(2)
                 wf.setframerate(16000)

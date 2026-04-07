@@ -537,16 +537,38 @@ class _OnboardingWorker(QObject):
 
             self.progress.emit(5)
 
+            # download spacy model if needed (first time only)
+            try:
+                import spacy
+                spacy.load("en_core_web_sm")
+            except OSError:
+                print("downloading spacy en_core_web_sm...")
+                from spacy.cli import download
+                download("en_core_web_sm")
+            self.progress.emit(10)
+
+            # download embedding model if needed (first time only)
+            provider = EmbeddingProvider(cache_dir=self._model_dir)
+            if not provider.model_ready():
+                provider.download_model(
+                    progress_callback=lambda p: self.progress.emit(10 + int(p * 0.15))
+                )
+            self.progress.emit(25)
+
             # generate linguistic profile
             extractor = LinguisticProfileExtractor(corpus, self._api_url)
-            profile = extractor.extract(progress_callback=lambda p: self.progress.emit(int(p * 0.5)))
+            profile = extractor.extract(
+                progress_callback=lambda p: self.progress.emit(25 + int(p * 0.40))
+            )
             pm.save_linguistic_profile(profile)
-            self.progress.emit(55)
+            self.progress.emit(65)
 
             # build embedding index
-            provider = EmbeddingProvider(cache_dir=self._model_dir)
             index = CorpusIndex(pm.embeddings_dir, provider)
-            index.build_index(corpus, progress_callback=lambda p: self.progress.emit(55 + int(p * 0.45)))
+            index.build_index(
+                corpus,
+                progress_callback=lambda p: self.progress.emit(65 + int(p * 0.35))
+            )
             self.progress.emit(100)
             self.finished.emit(profile)
         except Exception as e:
@@ -694,13 +716,13 @@ class PatientOnboardingDialog(QDialog):
         self._import_btn.setEnabled(False)
 
         self._thread = QThread()
-        worker = _OnboardingWorker(name, self._backend.api_url, _model_dir())
-        worker.moveToThread(self._thread)
-        self._thread.started.connect(worker.run)
-        worker.progress.connect(self._bar.setValue)
-        worker.finished.connect(self._on_done)
-        worker.finished.connect(self._thread.quit)
-        worker.finished.connect(worker.deleteLater)
+        self._worker = _OnboardingWorker(name, self._backend.api_url, _model_dir())
+        self._worker.moveToThread(self._thread)
+        self._thread.started.connect(self._worker.run)
+        self._worker.progress.connect(self._bar.setValue)
+        self._worker.finished.connect(self._on_done)
+        self._worker.finished.connect(self._thread.quit)
+        self._worker.finished.connect(self._worker.deleteLater)
         self._thread.finished.connect(self._thread.deleteLater)
         self._thread.start()
 

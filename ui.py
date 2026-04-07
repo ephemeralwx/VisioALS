@@ -127,7 +127,10 @@ class GazeScreen(QWidget):
         if self._linguistic_profile:
             kwargs["linguistic_profile_summary"] = self._linguistic_profile.get("summary")
         if self._corpus_index and self.context:
-            kwargs["exemplars"] = self._corpus_index.retrieve(self.context, top_k=5)
+            try:
+                kwargs["exemplars"] = self._corpus_index.retrieve(self.context, top_k=5)
+            except Exception as e:
+                print(f"exemplar retrieval failed: {e}")
         if include_prefs and self._preference_rules:
             kwargs["preference_rules"] = self._preference_rules
         return kwargs
