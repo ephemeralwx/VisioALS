@@ -677,29 +677,31 @@ class PatientOnboardingDialog(QDialog):
             QMessageBox.warning(self, "Error", "Enter a patient name first.")
             return
 
-        path = QFileDialog.getExistingDirectory(self, "Select corpus directory")
-        if not path:
-            # try single file
-            path, _ = QFileDialog.getOpenFileName(
-                self, "Select corpus file", "", "Text files (*.txt *.json *.csv)"
-            )
-        if not path:
+        paths, _ = QFileDialog.getOpenFileNames(
+            self, "Select corpus files", "", "Text files (*.txt *.json *.csv)"
+        )
+        if not paths:
             return
 
         from patient_data import PatientDataManager
         import shutil
 
         pm = PatientDataManager(name)
-        if os.path.isdir(path):
-            # copy all supported files into corpus dir
-            for fname in os.listdir(path):
-                if fname.lower().endswith((".txt", ".json", ".csv")):
-                    shutil.copy2(os.path.join(path, fname), pm.corpus_dir)
-        else:
-            shutil.copy2(path, pm.corpus_dir)
 
+        # clear old corpus so re-imports actually replace
+        if os.path.isdir(pm.corpus_dir):
+            for old in os.listdir(pm.corpus_dir):
+                os.remove(os.path.join(pm.corpus_dir, old))
+        pm.ensure_directories()
+
+        for p in paths:
+            shutil.copy2(p, pm.corpus_dir)
+
+        filenames = [os.path.basename(p) for p in paths]
         corpus = pm.load_corpus()
-        self._import_status.setText(f"Imported {len(corpus)} text snippets.")
+        self._import_status.setText(
+            f"Imported {len(corpus)} text snippets: {', '.join(filenames)}"
+        )
         self._import_status.setObjectName("statusOk")
         self._import_status.setStyle(self._import_status.style())
         self._check_ready()
