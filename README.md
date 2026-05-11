@@ -10,45 +10,45 @@ VisioALS uses a standard webcam (no special hardware!) to let patients select AI
 
 ## Quick Start (For Caregivers)
 
-VisioALS runs on any Windows 10/11 computer with a webcam. I tried my best to make it as easy to set up as possible. 
+VisioALS runs on any Windows 10/11 laptop with a webcam. I tried my best to make it as easy to set up as possible. 
 
 1. **Download** the latest installer from the [Releases](../../releases) page
 2. **Run the installer** and follow the prompts
-3. **Launch VisioALS** — a setup wizard walks you through everything:
+3. **Launch VisioALS** and follow a setup wizard that will walk you through everything:
    - Webcam check
    - Server connection (pre-configured, just click next)
-   - Patient profile creation (import some of the patient's past writing — texts, emails, anything they've written)
-4. **Calibrate** — the patient looks at dots on screen so the system learns their eye movement
-5. **Start talking** — the caregiver speaks, the patient responds by looking
+   - Patient profile creation (import some of the patient's past writing (texts, emails, anything they've written that sounds like them)
+4. **Calibration:** The patient looks at dots on screen for a brief ~30 second calibration phase
+5. **Start talking:** The caregiver speaks and the user is able to respond simply by looking
 
-That's it. 
-No API keys, no configuration files, no terminal commands.
+That's it. If the setup provides trouble, contact me at kevin.w.xia@gmail.com and I can help! 
+There are no no configuration files and no terminal commands.
 
 ---
 
 ## How It Works
 
 1. A caregiver asks a question out loud (recorded through the microphone)
-2. Speech is transcribed locally on the device — nothing leaves the computer for this step
+2. Speech is transcribed locally on the device
 3. AI generates 4 response options tailored to the patient's voice and preferences
-4. The patient selects a response by gazing at one of four screen quadrants (or looking at "None of these" to reject all options)
+4. The patient selects a response by gazing at one of four screen quadrants (or looking at "None of these" to reject all options and generate new ones)
 5. The selected response is spoken aloud through text-to-speech
 
-The system supports both **eye tracking** and **head tracking**, so patients can use whichever works better for their current level of mobility.
+The system supports both **eye tracking** and **head tracking**, so users can use whichever works better for their current level of mobility.
 
 ---
 
-## Key Features
+## Cool Features 
 
 ### Linguistic Identity Preservation
 
-ALS takes away the ability to speak, but it shouldn't take away *how* someone speaks. During setup, caregivers import samples of the patient's past writing — old texts, emails, social media posts, anything. VisioALS builds a detailed linguistic profile that captures:
+ALS takes away the ability to speak, but it shouldn't take away *how* someone speaks. During setup, users have the option to import  samples of their past writing/communication patterns - old texts, emails, social media posts, anything. VisioALS builds a detailed linguistic profile extracts:
 
-- **Vocabulary patterns**: word choices, favorite phrases, sentence length
-- **Tone and register**: how formal or casual they are, use of contractions, humor style
-- **Signature expressions**: catchphrases, filler words, how they open and close messages
+- **(1)Vocabulary pattern** - word choices, favorite phrases, & sentence length
+- **(2)Tone/register** - how formal casual they are, use of contractions, & humor style
+- **(3)Signature expressions** - catchphrases, filler words, how they open and close messages
 
-This profile is used every time the system generates response options, so the output sounds like the patient — their words, their style, their personality.
+This profile is used every time the system generates response options, so the output sounds like the patient. Each response should represent their words, their style, and their personality.
 
 ### Adaptive Preference Learning (RLHF)
 
@@ -62,7 +62,7 @@ The result is that VisioALS gets better the more it's used. What starts as gener
 
 ### No Special Hardware
 
-Most eye-tracking AAC devices cost thousands of dollars and require dedicated hardware. VisioALS uses a standard laptop webcam and an ensemble of machine learning models (Random Forest, Gradient Boosting, KNN) to track where the patient is looking. A short calibration step at the start of each session is all that's needed.
+Most eye-tracking AAC devices cost thousands of dollars and require dedicated hardware. VisioALS uses a standard laptop webcam and an ensemble of machine learning models (Random Forest, Gradient Boosting, KNN) to track where the patient is looking. The user just has to undergo a short calibration phase before each session. 
 
 ---
 
@@ -90,7 +90,7 @@ visioals-worker/        — Cloudflare Worker (API proxy)
 | Eye/Head Tracking | MediaPipe Face Landmarker + scikit-learn ensemble |
 | Speech-to-Text | faster-whisper (tiny.en, runs locally) |
 | Text-to-Speech | pyttsx3 (Windows SAPI5) |
-| Response Generation | GPT-4.1-nano via OpenRouter |
+| Response Generation | GPT-5.4-nano via OpenRouter |
 | Semantic Retrieval | all-MiniLM-L6-v2 sentence embeddings |
 | Linguistic Analysis | spaCy + TF-IDF (scikit-learn) |
 | Desktop UI | PySide6 (Qt) |
@@ -98,15 +98,11 @@ visioals-worker/        — Cloudflare Worker (API proxy)
 
 ### How the Linguistic Profile Works
 
-The `LinguisticProfileExtractor` analyzes a patient's writing corpus across five dimensions:
+VisioALS includes a profile extractor module that analyzes a patient's writing corpus and extracts the following:
 
-1. **Vocabulary metrics**: average sentence length, type-token ratio (vocabulary diversity), distinctive words and phrases identified via TF-IDF analysis
-2. **Structural patterns**: distribution of sentence types (declarative, questions, fragments, imperatives), average response length
-3. **Register and tone**: formality score computed from contraction rate, average word length, and passive voice usage
-4. **Signature phrases**: most common filler words, sentence openers/closers, and recurring n-gram catchphrases
-5. **Subjective style**: humor style, emotional valence, and tone description via LLM analysis of representative samples
+avg sentence length, vocabulary diversity, sentence type, average response length, formality, recurring catchphrases, humor style, tone
 
-The resulting profile is stored as JSON and summarized into a natural-language description that's included in every response generation prompt.
+The resulting profile is stored as JSON and summarized into a short description that's included in every response generation prompt.
 
 ### How Preference Learning Works
 
@@ -119,13 +115,13 @@ Interactions are logged to a JSONL file with the question, all options shown, wh
 ### Prerequisites
 
 - Python 3.12+
-- A webcam
+- Laptop with webcam
 - Windows 10/11
 
 ### Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/VisioALS.git
+git clone https://github.com/ephemeralwx/VisioALS.git
 cd VisioALS
 python -m venv env
 env\Scripts\activate
