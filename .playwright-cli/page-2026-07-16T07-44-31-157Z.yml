@@ -1,0 +1,105 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - link "VisioALS home" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e8]: VisioALS
+      - generic [ref=e9]: web demo
+    - generic [ref=e10]:
+      - generic [ref=e11]: Checking service
+      - button "Profile" [ref=e14] [cursor=pointer]
+      - button "Open help" [ref=e15] [cursor=pointer]: "?"
+  - main [ref=e16]:
+    - region "Tracking controls" [ref=e17]:
+      - generic [ref=e18]:
+        - paragraph [ref=e19]: Input
+        - heading "Choose how you select" [level=2] [ref=e20]
+      - radiogroup "Selection mode" [ref=e21]:
+        - radio "Eye gaze Look to select" [checked] [ref=e22] [cursor=pointer]:
+          - generic [ref=e24]:
+            - generic [ref=e25]: Eye gaze
+            - generic [ref=e26]: Look to select
+        - radio "Head tracking Move to select" [ref=e27] [cursor=pointer]:
+          - generic [ref=e29]:
+            - generic [ref=e30]: Head tracking
+            - generic [ref=e31]: Move to select
+        - radio "Pointer Click or tap" [ref=e32] [cursor=pointer]:
+          - generic [ref=e33]: ↗
+          - generic [ref=e34]:
+            - generic [ref=e35]: Pointer
+            - generic [ref=e36]: Click or tap
+      - generic [ref=e37]:
+        - paragraph [ref=e43]: Camera is off
+        - button "Enable camera" [ref=e44] [cursor=pointer]
+        - button "Calibrate tracking" [disabled] [ref=e45]
+      - generic [ref=e46]:
+        - generic [ref=e47]: ◉
+        - paragraph [ref=e48]:
+          - generic [ref=e49]: Private by design
+          - text: Your camera never leaves this device.
+    - region "Communication workspace" [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - paragraph [ref=e53]: Conversation
+          - heading "What did they ask?" [level=1] [ref=e54]
+        - button "New conversation" [ref=e55] [cursor=pointer]
+      - generic [ref=e56]:
+        - generic [ref=e57]: Caregiver's question
+        - textbox "Caregiver's question" [ref=e58]:
+          - /placeholder: Type a question, or use the microphone…
+        - generic [ref=e59]:
+          - button "Start voice input" [ref=e60] [cursor=pointer]:
+            - generic [ref=e62]: Speak
+          - button "Generate replies" [ref=e63] [cursor=pointer]:
+            - generic [ref=e65]: →
+      - status [ref=e66]:
+        - paragraph [ref=e68]:
+          - generic [ref=e69]: Eye gaze selected.
+          - generic [ref=e70]: Enable the camera to begin.
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - paragraph [ref=e73]: Suggested replies
+          - generic [ref=e74]: Look at a reply to select it
+        - generic [ref=e75]:
+          - button "01 Your first reply will appear here" [disabled] [ref=e76]:
+            - generic [ref=e77]: "01"
+            - generic [ref=e78]: Your first reply will appear here
+          - button "02 A different option will appear here" [disabled] [ref=e80]:
+            - generic [ref=e81]: "02"
+            - generic [ref=e82]: A different option will appear here
+          - button "03 Each choice stays short and clear" [disabled] [ref=e84]:
+            - generic [ref=e85]: "03"
+            - generic [ref=e86]: Each choice stays short and clear
+          - button "04 Select with gaze, head, or click" [disabled] [ref=e88]:
+            - generic [ref=e89]: "04"
+            - generic [ref=e90]: Select with gaze, head, or click
+        - button "None of these Show four different replies" [disabled] [ref=e92]:
+          - generic [ref=e93]: ↻
+          - generic [ref=e94]:
+            - generic [ref=e95]: None of these
+            - generic [ref=e96]: Show four different replies
+          - generic [ref=e97]: →
+  - dialog [ref=e98]:
+    - generic [ref=e100]:
+      - button "Close welcome" [ref=e101] [cursor=pointer]: ×
+      - generic [ref=e102]:
+        - generic [ref=e107]: Yes, please.
+        - generic [ref=e108]: Give me a moment.
+        - generic [ref=e109]: Not right now.
+      - generic [ref=e110]:
+        - paragraph [ref=e111]: Browser experience
+        - heading "Your voice, within sight." [level=2] [ref=e112]: Your voice,within sight.
+        - paragraph [ref=e113]: VisioALS turns a caregiver’s question into short replies you can choose with your eyes, head, or a click.
+        - generic [ref=e114]:
+          - generic [ref=e115]:
+            - generic [ref=e116]: "1"
+            - text: No download
+          - generic [ref=e117]:
+            - generic [ref=e118]: "2"
+            - text: Private camera
+          - generic [ref=e119]:
+            - generic [ref=e120]: "3"
+            - text: About one minute
+        - button "Start the demo →" [ref=e121] [cursor=pointer]:
+          - text: Start the demo
+          - generic [ref=e122]: →
+        - button "Continue without a camera" [ref=e123] [cursor=pointer]

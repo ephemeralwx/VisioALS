@@ -1,0 +1,17 @@
+- generic [active] [ref=e1]:
+  - main "VisioALS" [ref=e2]:
+    - generic [ref=e3]:
+      - generic:
+        - paragraph: Press SPACE to begin calibration
+        - generic: "Mode: Eye Tracking • Press M to switch"
+  - dialog [ref=e5]:
+    - generic [ref=e6]: VisioALS
+    - generic [ref=e8]:
+      - paragraph [ref=e9]: STEP 1 OF 2
+      - heading "Welcome to VisioALS" [level=1] [ref=e10]
+      - paragraph [ref=e11]: Adaptive communication for ALS patients.We'll get you set up in just a moment.
+      - paragraph [ref=e12]: 1. Check that your webcam is working
+      - paragraph [ref=e13]: Press Next to begin
+    - contentinfo [ref=e14]:
+      - button "Quit" [ref=e15] [cursor=pointer]
+      - button "Continue" [ref=e26] [cursor=pointer]

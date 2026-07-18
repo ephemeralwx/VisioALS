@@ -168,14 +168,26 @@ class CorpusIndex:
         print(f"corpus index loaded: {len(self._texts)} texts")
         return True
 
-    def retrieve(self, query: str, top_k: int = 5) -> list[str]:
-        """Find the top-k most similar corpus texts to the query."""
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 5,
+        min_similarity: float | None = None,
+    ) -> list[str]:
+        """Find similar corpus texts, optionally dropping irrelevant matches.
+
+        A similarity floor matters when the corpus is small: without one, a
+        single unrelated document is always the "best" match and gets passed
+        to response generation even when it has nothing to do with the query.
+        """
         if self._vectors is None or self._texts is None:
             return []
 
         q_vec = self._provider.encode_single(query)
         sims = self._cosine_similarity(q_vec, self._vectors)
         top_idx = sims.argsort()[::-1][:top_k]
+        if min_similarity is not None:
+            top_idx = [i for i in top_idx if sims[i] >= min_similarity]
         return [self._texts[i] for i in top_idx]
 
     @staticmethod

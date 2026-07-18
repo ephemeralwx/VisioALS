@@ -237,6 +237,16 @@ MODEL_COLORS = {
 # lr weighted higher bc its the most stable when calibration data is sparse
 MODEL_WEIGHTS = {"LR": 0.35, "POLY": 0.25, "SVR": 0.25, "KNN": 0.15}
 
+# Recalibration guardrails. The values are fractions of the screen diagonal, so
+# they scale with window size instead of assuming a fixed resolution.
+PREDICTION_MEAN_SPREAD_LIMIT = 0.17
+PREDICTION_MAX_SPREAD_LIMIT = 0.27
+PREDICTION_DIRECTION_SPREAD_LIMIT = 0.08
+PREDICTION_DIRECTION_COHERENCE_LIMIT = 0.55
+PREDICTION_MIN_STEP_FRAC = 0.012
+PREDICTION_INSTABILITY_SECONDS = 1.25
+PREDICTION_STABILITY_GRACE_SECONDS = 1.0
+
 
 class GazeTracker:
     def __init__(self, mode="eye"):
@@ -268,6 +278,9 @@ class GazeTracker:
 
         self._face_lost_since: float | None = None
         self._last_landmarks = None
+        self._unstable_prediction_since: float | None = None
+        self._last_stability_positions: dict[str, tuple[int, int]] | None = None
+        self._stability_grace_until: float | None = None
 
     def open_camera(self) -> bool:
         self.cap = cv2.VideoCapture(0)
@@ -358,6 +371,89 @@ class GazeTracker:
     def get_all_model_positions(self) -> dict[str, tuple[int, int] | None]:
         return dict(self.model_positions)
 
+    def check_prediction_instability(self, screen_w: int, screen_h: int) -> bool:
+        if self.models is None:
+            self._reset_prediction_stability()
+            return False
+
+        positions = {}
+        for name in MODEL_NAMES:
+            pos = self.model_positions.get(name)
+            if pos is None:
+                self._reset_prediction_stability(keep_previous=False)
+                return False
+            positions[name] = pos
+
+        now = time.time()
+        if self._stability_grace_until is not None and now < self._stability_grace_until:
+            self._last_stability_positions = positions
+            self._unstable_prediction_since = None
+            return False
+
+        diag = max(math.hypot(screen_w, screen_h), 1.0)
+        pts = np.array(list(positions.values()), dtype=float)
+        centroid = pts.mean(axis=0)
+        distances = np.linalg.norm(pts - centroid, axis=1)
+        mean_spread = float(distances.mean() / diag)
+        max_spread = float(distances.max() / diag)
+
+        spread_unstable = (
+            mean_spread > PREDICTION_MEAN_SPREAD_LIMIT or
+            max_spread > PREDICTION_MAX_SPREAD_LIMIT
+        )
+        direction_unstable = self._prediction_directions_disagree(positions, diag)
+        unstable = spread_unstable or (
+            direction_unstable and mean_spread > PREDICTION_DIRECTION_SPREAD_LIMIT
+        )
+
+        self._last_stability_positions = positions
+        if not unstable:
+            self._unstable_prediction_since = None
+            return False
+
+        if self._unstable_prediction_since is None:
+            self._unstable_prediction_since = now
+            return False
+
+        if now - self._unstable_prediction_since >= PREDICTION_INSTABILITY_SECONDS:
+            print(
+                "prediction instability detected: "
+                f"mean_spread={mean_spread:.3f}, max_spread={max_spread:.3f}"
+            )
+            return True
+        return False
+
+    def _prediction_directions_disagree(
+            self, positions: dict[str, tuple[int, int]], diag: float) -> bool:
+        if self._last_stability_positions is None:
+            return False
+
+        vectors = []
+        steps = []
+        min_step = diag * PREDICTION_MIN_STEP_FRAC
+        for name in MODEL_NAMES:
+            prev = self._last_stability_positions.get(name)
+            curr = positions.get(name)
+            if prev is None or curr is None:
+                return False
+            dx = curr[0] - prev[0]
+            dy = curr[1] - prev[1]
+            step = math.hypot(dx, dy)
+            if step >= min_step:
+                vectors.append((dx / step, dy / step))
+                steps.append(step)
+
+        if len(vectors) < 3:
+            return False
+
+        v = np.array(vectors, dtype=float)
+        coherence = float(np.linalg.norm(v.mean(axis=0)))
+        mean_step = float(np.mean(steps) / diag)
+        return (
+            coherence < PREDICTION_DIRECTION_COHERENCE_LIMIT and
+            mean_step > PREDICTION_MIN_STEP_FRAC
+        )
+
     def check_face_lost(self, detected: bool) -> bool:
         # 3s threshold — shorter felt too twitchy when user just blinks or looks away briefly
         if detected:
@@ -380,6 +476,7 @@ class GazeTracker:
         self._output_filter.reset()
         self._last_predict_time = None
         self._face_lost_since = None
+        self._reset_prediction_stability(keep_previous=False)
         print("calibration reset")
 
     def train(self):
@@ -387,6 +484,15 @@ class GazeTracker:
             print(f"not enough calibration data ({len(self.calibration_data)} pts)")
             return
         self.models = train_models(self.calibration_data)
+        self._reset_prediction_stability(grace=True)
+
+    def _reset_prediction_stability(self, keep_previous: bool = False, grace: bool = False):
+        self._unstable_prediction_since = None
+        if not keep_previous:
+            self._last_stability_positions = None
+        self._stability_grace_until = (
+            time.time() + PREDICTION_STABILITY_GRACE_SECONDS if grace else None
+        )
 
 
 # --- head tracking ---
@@ -402,5 +508,3 @@ def extract_head_features(landmarks):
     if iod > 1e-6:
         pts = pts / iod
     return pts.flatten()
-
-

@@ -71,6 +71,22 @@ class TestCorpusIndex:
         results = corpus_index.retrieve("test query")
         assert results == []
 
+    def test_retrieve_can_filter_out_unrelated_best_match(self, tmp_path):
+        """A one-document corpus must not make that document relevant to everything."""
+        from embeddings import CorpusIndex
+
+        class FixedProvider:
+            def encode_single(self, _text):
+                return np.array([1.0, 0.0], dtype=np.float32)
+
+        index = CorpusIndex(str(tmp_path / "embeddings"), FixedProvider())
+        index._texts = ["Writing is astronomically hard."]
+        index._vectors = np.array([[0.1, 0.995]], dtype=np.float32)
+
+        assert index.retrieve(
+            "How are you doing today?", min_similarity=0.30,
+        ) == []
+
     def test_not_built_before_build(self, corpus_index):
         assert not corpus_index.is_built()
 

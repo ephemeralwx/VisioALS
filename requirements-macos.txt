@@ -1,0 +1,29 @@
+# Reproducible macOS packaging environment.
+#
+# MediaPipe 0.10.21 is the last release with both Intel and Apple Silicon Mac
+# wheels. The other native packages are pinned to releases whose wheels run on
+# macOS 12 or newer on both architectures.
+PySide6-Essentials==6.8.3
+mediapipe==0.10.21
+opencv-contrib-python==4.10.0.84
+numpy==1.26.4
+scipy==1.14.1
+scikit-learn==1.5.2
+sounddevice==0.5.5
+faster-whisper==1.2.1
+ctranslate2==4.6.0
+onnxruntime==1.19.2
+tokenizers==0.21.4
+requests==2.32.5
+click==8.2.1
+keyring==25.6.0
+spacy==3.8.14
+protobuf==4.25.8
+jax==0.4.30
+jaxlib==0.4.30
+matplotlib==3.9.4
+sentencepiece==0.2.0
+
+# Bundle the English pipeline. A frozen app cannot install this into itself on
+# first launch, which is what `python -m spacy download` normally does.
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl

@@ -128,7 +128,13 @@ class GazeScreen(QWidget):
             kwargs["linguistic_profile_summary"] = self._linguistic_profile.get("summary")
         if self._corpus_index and self.context:
             try:
-                kwargs["exemplars"] = self._corpus_index.retrieve(self.context, top_k=5)
+                # Do not force an unrelated sample into every prompt. This is
+                # especially important for profiles built from one long essay.
+                exemplars = self._corpus_index.retrieve(
+                    self.context, top_k=5, min_similarity=0.30,
+                )
+                if exemplars:
+                    kwargs["exemplars"] = exemplars
             except Exception as e:
                 print(f"exemplar retrieval failed: {e}")
         if include_prefs and self._preference_rules:
@@ -240,6 +246,12 @@ class GazeScreen(QWidget):
         if detected:
             gaze_pos = self.gaze.predict_gaze(norm[0], norm[1])
 
+        if gaze_pos is not None and self.gaze.check_prediction_instability(self.sw, self.sh):
+            self.status_text = "Gaze became unstable. Recalibrating..."
+            self._begin_calibration()
+            self.update()
+            return
+
         if gaze_pos is not None and self.responses and not self._selection_locked:
             gx, gy = gaze_pos
             for key, (x1, y1, x2, y2) in self.quads.items():
@@ -276,6 +288,8 @@ class GazeScreen(QWidget):
         self.gaze.reset_calibration()
         self.calibration = MovingDotCalibration(self.sw, self.sh)
         self.calibration.start()
+        for k in self.timers:
+            self.timers[k] = 0.0
 
     def _on_selection(self, direction: str):
         idx = {"top_left": 0, "top_right": 1, "bottom_left": 2, "bottom_right": 3}.get(direction)
@@ -576,6 +590,13 @@ class MainWindow(QMainWindow):
         elif key == Qt.Key_R:
             self.screen._restart_calibration()
 
+        elif key == Qt.Key_C:
+            if self.screen.is_recording:
+                self.backend.stop_recording()
+                self.screen.is_recording = False
+            self.screen._begin_calibration()
+            self.screen.update()
+
         elif key == Qt.Key_F11:
             if self.isFullScreen():
                 self.showMaximized()
@@ -583,8 +604,17 @@ class MainWindow(QMainWindow):
                 self.showFullScreen()
 
         elif key == Qt.Key_P and self.screen.phase in ("waiting", "tracking"):
+            if self.screen.is_recording:
+                self.screen.status_text = "Stop the current recording before editing the patient profile."
+                self.screen.update()
+                return
             from main import PatientOnboardingDialog
-            dlg = PatientOnboardingDialog(self.backend, parent=self)
+            active_patient = (self._cfg or {}).get("active_patient")
+            dlg = PatientOnboardingDialog(
+                self.backend,
+                parent=self,
+                selected_patient=active_patient,
+            )
             if dlg.exec() == 1:  # QDialog.Accepted
                 patient_name = dlg.patient_name()
                 if patient_name and self._cfg is not None:
@@ -594,6 +624,11 @@ class MainWindow(QMainWindow):
                     from patient_data import PatientDataManager
                     from embeddings import EmbeddingProvider, CorpusIndex
                     pd = PatientDataManager(patient_name)
+                    voice_profile = pd.load_voice_profile() or {}
+                    self.backend.configure_elevenlabs(
+                        self.backend.elevenlabs_api_key,
+                        voice_profile.get("voice_id", ""),
+                    )
                     ci = None
                     if pd.load_linguistic_profile() is not None:
                         provider = EmbeddingProvider()
@@ -621,6 +656,19 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         self.screen._timer.stop()
+
+        # The API/transcription workers use QThreads. Let their bounded work
+        # finish before Qt destroys their wrappers, otherwise shutdown aborts
+        # with "QThread: Destroyed while thread is still running".
+        for thread, _worker in self._threads + self.screen._threads:
+            try:
+                if thread.isRunning():
+                    thread.quit()
+                    thread.wait()
+            except RuntimeError:
+                # deleteLater() may already have released a completed thread.
+                pass
+
         self.gaze.release_camera()
         # fire and forget telemetry, lazy import bc only needed on shutdown
         if hasattr(self, '_session_start'):

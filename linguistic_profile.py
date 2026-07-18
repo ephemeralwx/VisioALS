@@ -24,6 +24,18 @@ _FILLERS = [
     "the point is", "fair enough", "no worries",
 ]
 
+# High-signal UK colloquialisms. The LLM analysis below handles language
+# varieties generally; this small deterministic layer makes common British
+# English evidence survive even if the subjective-analysis request fails.
+_BRITISH_MARKERS = [
+    "mate", "cheers", "knackered", "shattered", "cuppa", "innit",
+    "faff", "bloke", "sarnie", "kip", "ropey", "dodgy", "chuffed",
+    "gutted", "muppet", "plonker", "git", "arse", "bollocks", "pub",
+    "proper", "bang on", "crack on", "sack off", "do one",
+    "taking the piss", "take the piss", "doing my head in",
+    "done my head in", "happy days", "good egg", "sorted",
+]
+
 
 class LinguisticProfileExtractor:
     """Extracts a linguistic profile from a patient's text corpus."""
@@ -64,6 +76,7 @@ class LinguisticProfileExtractor:
             progress_callback(50)
 
         phrases = self._extract_signature_phrases()
+        regional = self._extract_regional_language()
         if progress_callback:
             progress_callback(65)
 
@@ -72,7 +85,9 @@ class LinguisticProfileExtractor:
         if progress_callback:
             progress_callback(85)
 
-        summary = self._build_summary(vocab, structure, register, subjective, phrases)
+        summary = self._build_summary(
+            vocab, structure, register, subjective, phrases, regional
+        )
         if progress_callback:
             progress_callback(100)
 
@@ -82,6 +97,7 @@ class LinguisticProfileExtractor:
             "register": register,
             "subjective": subjective,
             "signature_phrases": phrases,
+            "regional_language": regional,
             "summary": summary,
         }
 
@@ -200,6 +216,7 @@ class LinguisticProfileExtractor:
         contraction_count = 0
         passive_count = 0
         total_sentences = 0
+        informal_marker_count = 0
 
         for text in self._corpus:
             doc = self._nlp(text)
@@ -209,6 +226,11 @@ class LinguisticProfileExtractor:
 
             # contractions
             contraction_count += len(_CONTRACTIONS.findall(text))
+            text_lower = text.lower()
+            informal_marker_count += sum(
+                len(re.findall(rf"(?<!\w){re.escape(marker)}(?!\w)", text_lower))
+                for marker in _BRITISH_MARKERS
+            )
 
             for sent in doc.sents:
                 total_sentences += 1
@@ -219,14 +241,15 @@ class LinguisticProfileExtractor:
         avg_word_len = total_chars / max(total_words, 1)
         contraction_rate = contraction_count / max(total_words, 1)
         passive_ratio = passive_count / max(total_sentences, 1)
+        informal_marker_rate = informal_marker_count / max(total_words, 1)
 
         # formality heuristic: higher = more formal
         # low contractions, longer words, more passive = more formal
         formality = (
-            (1 - min(contraction_rate * 10, 1)) * 0.3 +
-            min(avg_word_len / 7, 1) * 0.3 +
-            min(passive_ratio * 5, 1) * 0.2 +
-            (1 - min(contraction_rate * 5, 1)) * 0.2
+            (1 - min(contraction_rate * 20, 1)) * 0.35 +
+            min(avg_word_len / 7, 1) * 0.25 +
+            min(passive_ratio * 5, 1) * 0.15 +
+            (1 - min(informal_marker_rate * 12, 1)) * 0.25
         )
 
         return {
@@ -234,6 +257,7 @@ class LinguisticProfileExtractor:
             "contraction_rate": round(contraction_rate, 3),
             "passive_voice_ratio": round(passive_ratio, 3),
             "avg_word_length": round(avg_word_len, 1),
+            "informal_marker_rate": round(informal_marker_rate, 3),
         }
 
     # ── signature phrases ───────────────────────────────────────────
@@ -242,7 +266,10 @@ class LinguisticProfileExtractor:
         filler_counts = Counter()
         openers = Counter()
         closers = Counter()
-        ngram_counts = Counter()
+        # Count in how many independent samples an n-gram appears. Repetition
+        # within one essay reflects that essay's topic, not a general-purpose
+        # catchphrase the patient is likely to use in conversation.
+        ngram_document_counts = Counter()
 
         for text in self._corpus:
             text_lower = text.lower()
@@ -264,14 +291,15 @@ class LinguisticProfileExtractor:
 
             # n-grams (2-4 words) for catchphrases
             tokens = [t.text.lower() for t in doc if not t.is_punct and not t.is_space]
+            sample_ngrams = set()
             for n in (2, 3, 4):
                 for i in range(len(tokens) - n + 1):
-                    gram = " ".join(tokens[i : i + n])
-                    ngram_counts[gram] += 1
+                    sample_ngrams.add(" ".join(tokens[i : i + n]))
+            ngram_document_counts.update(sorted(sample_ngrams))
 
-        # filter n-grams: must appear at least 3 times
+        # A catchphrase must occur in at least 3 separate samples.
         catchphrases = [
-            phrase for phrase, count in ngram_counts.most_common(50)
+            phrase for phrase, count in ngram_document_counts.most_common(50)
             if count >= 3
         ][:10]
 
@@ -280,6 +308,44 @@ class LinguisticProfileExtractor:
             "openers": [o for o, _ in openers.most_common(8)],
             "closers": [c for c, _ in closers.most_common(8)],
             "catchphrases": catchphrases,
+        }
+
+    def _extract_regional_language(self) -> dict:
+        """Collect repeated, high-signal regional vocabulary."""
+        counts = Counter()
+        document_counts = Counter()
+
+        for text in self._corpus:
+            text_lower = text.lower()
+            found_in_sample = set()
+            for marker in _BRITISH_MARKERS:
+                count = len(re.findall(
+                    rf"(?<!\w){re.escape(marker)}(?!\w)", text_lower
+                ))
+                if count:
+                    counts[marker] += count
+                    found_in_sample.add(marker)
+            document_counts.update(found_in_sample)
+
+        # Prefer language repeated across independent samples, then fall back
+        # to strong one-off evidence when a corpus is small.
+        ranked = sorted(
+            counts,
+            key=lambda marker: (
+                document_counts[marker] >= 2,
+                document_counts[marker],
+                counts[marker],
+            ),
+            reverse=True,
+        )
+        markers = ranked[:12]
+        detected_variety = (
+            "colloquial British English" if len(markers) >= 3 else "unknown"
+        )
+        return {
+            "detected_variety": detected_variety,
+            "markers": markers,
+            "marker_counts": {marker: counts[marker] for marker in markers},
         }
 
     # ── subjective analysis (LLM call) ─────────────────────────────
@@ -328,6 +394,8 @@ class LinguisticProfileExtractor:
                 "tone_description": "unknown",
                 "emotional_valence": "neutral",
                 "personality_notes": "",
+                "language_variety": "unknown",
+                "slang_and_regionalisms": [],
             }
 
         try:
@@ -343,6 +411,8 @@ class LinguisticProfileExtractor:
                 "tone_description": data.get("tone_description", "unknown"),
                 "emotional_valence": data.get("emotional_valence", "neutral"),
                 "personality_notes": data.get("personality_notes", ""),
+                "language_variety": data.get("language_variety", "unknown"),
+                "slang_and_regionalisms": data.get("slang_and_regionalisms", []),
             }
         except Exception as e:
             print(f"subjective analysis failed: {e}")
@@ -351,12 +421,15 @@ class LinguisticProfileExtractor:
                 "tone_description": "unknown",
                 "emotional_valence": "neutral",
                 "personality_notes": "",
+                "language_variety": "unknown",
+                "slang_and_regionalisms": [],
             }
 
     # ── summary generation ──────────────────────────────────────────
 
     def _build_summary(self, vocab: dict, structure: dict, register: dict,
-                       subjective: dict, phrases: dict) -> str:
+                       subjective: dict, phrases: dict,
+                       regional: dict | None = None) -> str:
         parts = []
 
         # sentence length
@@ -384,6 +457,28 @@ class LinguisticProfileExtractor:
         # humor
         if subjective["humor_style"] not in ("unknown", "none", ""):
             parts.append(f"{subjective['humor_style']} humor")
+
+        # Explicitly preserve language variety and slang in the final string
+        # that is actually sent to response generation.
+        language_variety = subjective.get("language_variety", "unknown")
+        if language_variety not in ("unknown", "none", ""):
+            parts.append(f"language variety is {language_variety}")
+
+        regional = regional or {}
+        detected_variety = regional.get("detected_variety", "unknown")
+        if (detected_variety not in ("unknown", "none", "") and
+                language_variety in ("unknown", "none", "")):
+            parts.append(f"language variety is {detected_variety}")
+
+        slang = list(subjective.get("slang_and_regionalisms", []))
+        for marker in regional.get("markers", []):
+            if marker.lower() not in {str(item).lower() for item in slang}:
+                slang.append(marker)
+        if slang:
+            quoted = "', '".join(str(item) for item in slang[:10])
+            parts.append(
+                f"naturally uses regional slang including '{quoted}'"
+            )
 
         # emotional valence
         if subjective["emotional_valence"] not in ("unknown", "neutral"):

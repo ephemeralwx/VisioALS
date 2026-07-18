@@ -9,12 +9,87 @@ def test_directory_creation(tmp_patient_dir):
     assert os.path.isdir(pm.patient_dir)
     assert os.path.isdir(pm.corpus_dir)
     assert os.path.isdir(pm.embeddings_dir)
+    assert os.path.isdir(pm.media_dir)
 
 
 def test_load_corpus_txt(patient_with_corpus):
     texts = patient_with_corpus.load_corpus()
     assert len(texts) == 30
     assert "Honestly" in texts[0]
+
+
+def test_replace_corpus_with_pasted_text(tmp_patient_dir):
+    pm = PatientDataManager("pasted_text", base_dir=tmp_patient_dir)
+    with open(os.path.join(pm.corpus_dir, "old.txt"), "w") as f:
+        f.write("Old imported corpus")
+
+    pm.replace_corpus_with_text("  This was pasted by the user.  ")
+
+    assert pm.load_corpus() == ["This was pasted by the user."]
+    assert os.listdir(pm.corpus_dir) == ["pasted_text.txt"]
+
+
+def test_pasted_messages_are_loaded_as_independent_samples(tmp_patient_dir):
+    pm = PatientDataManager("pasted_messages", base_dir=tmp_patient_dir)
+    pm.replace_corpus_with_text(
+        "Alright mate, you about later?\n\n"
+        "Yeah, nah, I'm knackered.\n\n"
+        "Cheers mate, see you soon."
+    )
+
+    assert pm.load_corpus() == [
+        "Alright mate, you about later?",
+        "Yeah, nah, I'm knackered.",
+        "Cheers mate, see you soon.",
+    ]
+
+
+def test_replace_corpus_with_empty_text_is_rejected(tmp_patient_dir):
+    pm = PatientDataManager("empty_pasted_text", base_dir=tmp_patient_dir)
+
+    try:
+        pm.replace_corpus_with_text("   \n  ")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Expected empty pasted text to be rejected")
+
+
+def test_media_transcript_is_added_to_corpus(tmp_patient_dir, tmp_path):
+    pm = PatientDataManager("media_patient", base_dir=tmp_patient_dir)
+    source = tmp_path / "old recording.mp3"
+    source.write_bytes(b"audio data")
+
+    copied = pm.add_media_files([str(source)])
+    transcript_path = pm.save_media_transcript(copied[0], "Nah, I'm good.")
+
+    assert len(copied) == 1
+    assert copied[0].startswith(pm.media_dir)
+    assert transcript_path is not None
+    assert pm.load_corpus() == ["Nah, I'm good."]
+
+
+def test_voice_profile_and_media_fingerprint(tmp_patient_dir, tmp_path):
+    pm = PatientDataManager("voice_patient", base_dir=tmp_patient_dir)
+    source = tmp_path / "voice.wav"
+    source.write_bytes(b"first")
+    pm.add_media_files([str(source)])
+    fingerprint = pm.media_fingerprint()
+
+    pm.save_voice_profile({"voice_id": "voice-123", "media_fingerprint": fingerprint})
+
+    assert pm.load_voice_profile()["voice_id"] == "voice-123"
+    assert pm.media_fingerprint() == fingerprint
+
+
+def test_list_patient_names_only_returns_saved_profiles(tmp_patient_dir):
+    PatientDataManager("unfinished", base_dir=tmp_patient_dir)
+    james = PatientDataManager("James", base_dir=tmp_patient_dir)
+    james.save_linguistic_profile({"summary": "Direct and warm"})
+    alice = PatientDataManager("alice", base_dir=tmp_patient_dir)
+    alice.save_voice_profile({"voice_id": "voice-alice"})
+
+    assert PatientDataManager.list_patient_names(tmp_patient_dir) == ["alice", "James"]
 
 
 def test_load_corpus_json(tmp_patient_dir):

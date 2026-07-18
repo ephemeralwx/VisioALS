@@ -1,0 +1,18 @@
+- generic [active] [ref=e1]:
+  - main "VisioALS" [ref=e2]:
+    - generic [ref=e3]:
+      - generic:
+        - paragraph: Press SPACE to begin calibration
+        - generic: "Mode: Eye Tracking • Press M to switch"
+  - dialog "Welcome to VisioALS" [ref=e5]:
+    - generic [ref=e6]: VisioALS
+    - generic [ref=e17]:
+      - paragraph [ref=e18]: STEP 2 OF 2
+      - heading "Webcam check" [level=1] [ref=e19]
+      - paragraph [ref=e20]: We need camera access for tracking.
+      - generic [ref=e21]: Detecting camera...
+      - paragraph
+    - contentinfo [ref=e14]:
+      - button "Quit" [ref=e15] [cursor=pointer]
+      - button "Back" [ref=e24] [cursor=pointer]
+      - button "Get started" [disabled] [ref=e25]

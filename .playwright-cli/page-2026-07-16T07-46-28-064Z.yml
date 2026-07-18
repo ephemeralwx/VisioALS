@@ -1,0 +1,81 @@
+- generic [active] [ref=f1e1]:
+  - banner [ref=f1e2]:
+    - link "VisioALS home" [ref=f1e3] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f1e8]: VisioALS
+      - generic [ref=f1e9]: web demo
+    - generic [ref=f1e10]:
+      - generic [ref=f1e11]: AI service online
+      - button "Profile" [ref=f1e14] [cursor=pointer]
+      - button "Open help" [ref=f1e15] [cursor=pointer]: "?"
+  - main [ref=f1e16]:
+    - region "Tracking controls" [ref=f1e17]:
+      - generic [ref=f1e18]:
+        - paragraph [ref=f1e19]: Input
+        - heading "Choose how you select" [level=2] [ref=f1e20]
+      - radiogroup "Selection mode" [ref=f1e21]:
+        - radio "Eye gaze Look to select" [ref=f1e22] [cursor=pointer]:
+          - generic [ref=f1e24]:
+            - generic [ref=f1e25]: Eye gaze
+            - generic [ref=f1e26]: Look to select
+        - radio "Head tracking Move to select" [ref=f1e27] [cursor=pointer]:
+          - generic [ref=f1e29]:
+            - generic [ref=f1e30]: Head tracking
+            - generic [ref=f1e31]: Move to select
+        - radio "Pointer Click or tap" [checked] [ref=f1e32] [cursor=pointer]:
+          - generic [ref=f1e33]: ↗
+          - generic [ref=f1e34]:
+            - generic [ref=f1e35]: Pointer
+            - generic [ref=f1e36]: Click or tap
+      - generic [ref=f1e37]:
+        - paragraph [ref=f1e43]: Camera is off
+        - button "Enable camera" [ref=f1e44] [cursor=pointer]
+        - button "Calibrate tracking" [disabled] [ref=f1e45]
+      - generic [ref=f1e46]:
+        - generic [ref=f1e47]: ◉
+        - paragraph [ref=f1e48]:
+          - generic [ref=f1e49]: Private by design
+          - text: Your camera never leaves this device.
+    - region "Communication workspace" [ref=f1e50]:
+      - generic [ref=f1e51]:
+        - generic [ref=f1e52]:
+          - paragraph [ref=f1e53]: Conversation
+          - heading "What did they ask?" [level=1] [ref=f1e54]
+        - button "New conversation" [ref=f1e55] [cursor=pointer]
+      - generic [ref=f1e56]:
+        - generic [ref=f1e57]: Caregiver's question
+        - textbox "Caregiver's question" [ref=f1e58]:
+          - /placeholder: Type a question, or use the microphone…
+          - text: Would you like to go outside this afternoon?
+        - generic [ref=f1e59]:
+          - button "Start voice input" [ref=f1e60] [cursor=pointer]:
+            - generic [ref=f1e62]: Speak
+          - button "Generate replies" [ref=f1e63] [cursor=pointer]:
+            - generic [ref=f1e65]: →
+      - status [ref=f1e66]:
+        - paragraph [ref=f1e68]:
+          - generic [ref=f1e126]: Replies are ready.
+          - generic [ref=f1e127]: Click one to speak it.
+      - generic [ref=f1e71]:
+        - generic [ref=f1e72]:
+          - paragraph [ref=f1e73]: Suggested replies · round 1
+          - generic [ref=f1e74]: Click or tap a reply to select it
+        - generic [ref=f1e75]:
+          - 'button "Reply 1: Yes, that sounds nice." [ref=f1e128] [cursor=pointer]':
+            - generic [ref=f1e77]: "01"
+            - generic [ref=f1e78]: Yes, that sounds nice.
+          - 'button "Reply 2: No, not this afternoon." [ref=f1e129] [cursor=pointer]':
+            - generic [ref=f1e81]: "02"
+            - generic [ref=f1e82]: No, not this afternoon.
+          - 'button "Reply 3: After lunch, please." [ref=f1e130] [cursor=pointer]':
+            - generic [ref=f1e85]: "03"
+            - generic [ref=f1e86]: After lunch, please.
+          - 'button "Reply 4: I need a change of scenery." [ref=f1e131] [cursor=pointer]':
+            - generic [ref=f1e89]: "04"
+            - generic [ref=f1e90]: I need a change of scenery.
+        - button "None of these Show four different replies" [ref=f1e92] [cursor=pointer]:
+          - generic [ref=f1e93]: ↻
+          - generic [ref=f1e94]:
+            - generic [ref=f1e95]: None of these
+            - generic [ref=f1e96]: Show four different replies
+          - generic [ref=f1e97]: →

@@ -1,0 +1,102 @@
+{"kind":"deck","id":"pr/4q7la9","name":"Deck"}
+{"kind":"layout","layoutId":"1521cfe6-4c70-4179-ad63-312e1bcb30a1","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"29fb0348-550d-4718-998d-a391802411ce","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/yherpu","slide":1,"title":"EyeReply / VisioALS","textShapes":4}
+{"kind":"textbox","id":"sh/h0j2p0je","slide":1,"name":"deck-label","text":"EyeReply / VisioALS","textPreview":"EyeReply / VisioALS","textChars":19,"textLines":1,"bbox":[42,42,430,42]}
+{"kind":"textbox","id":"sh/udsjul0n","slide":1,"name":"cover-title","text":"Communication should still sound like you.","textPreview":"Communication should still sound like you.","textChars":42,"textLines":1,"bbox":[42,166,1050,270]}
+{"kind":"textbox","id":"sh/ve1knq18","slide":1,"name":"cover-subtitle","text":"Webcam gaze AAC with personalized candidate replies","textPreview":"Webcam gaze AAC with personalized candidate replies","textChars":51,"textLines":1,"bbox":[42,512,780,62]}
+{"kind":"textbox","id":"sh/8ba1svih","slide":1,"name":"cover-byline","text":"Kevin Xia  •  ICCHP 2026 Innovation Area","textPreview":"Kevin Xia  •  ICCHP 2026 Innovation Area","textChars":40,"textLines":1,"bbox":[42,614,680,32]}
+{"kind":"notes","id":"nt/yherpu","slide":1,"text":"Open with one sentence: ‘AAC can restore a channel for speech, but a channel is not the same thing as authorship.’ Then introduce EyeReply, the name used in the ICCHP program, and VisioALS, the software name. Do not start with the tech stack."}
+{"kind":"slide","id":"sl/6ixzym","slide":2,"title":"A correct reply can still feel like the wrong person","textShapes":9}
+{"kind":"textbox","id":"sh/xkvet0be","slide":2,"name":"title-2","text":"A correct reply can still feel like the wrong person","textPreview":"A correct reply can still feel like the wrong person","textChars":52,"textLines":1,"bbox":[42,34,1196,92]}
+{"kind":"textbox","id":"sh/ah4vylc3","slide":2,"name":"page-2","text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[1184,662,54,22]}
+{"kind":"textbox","id":"sh/vidwrqto","slide":2,"name":"example-context","text":"Illustrative example — same intent, different linguistic identity","textPreview":"Illustrative example — same intent, different linguistic identity","textChars":65,"textLines":1,"bbox":[42,136,880,34]}
+{"kind":"textbox","id":"sh/8f2dwbux","slide":2,"name":"question","text":"“Want some tea?”","textPreview":"“Want some tea?”","textChars":16,"textLines":1,"bbox":[42,194,600,62]}
+{"kind":"shape","id":"sh/9gvepgbi","slide":2,"name":"generic-box","bbox":[42,314,560,174]}
+{"kind":"textbox","id":"sh/mdkvulcr","slide":2,"name":"generic-label","text":"GENERIC","textPreview":"GENERIC","textChars":7,"textLines":1,"bbox":[70,342,200,28]}
+{"kind":"textbox","id":"sh/netwnqtc","slide":2,"name":"generic-quote","text":"“Yes, please.”","textPreview":"“Yes, please.”","textChars":14,"textLines":1,"bbox":[70,392,500,64]}
+{"kind":"shape","id":"sh/0r2dsbul","slide":2,"name":"identity-box","bbox":[638,314,600,174]}
+{"kind":"textbox","id":"sh/lcbulgb6","slide":2,"name":"identity-label","text":"STYLE-MATCHED CANDIDATE","textPreview":"STYLE-MATCHED CANDIDATE","textChars":23,"textLines":1,"bbox":[670,342,340,28]}
+{"kind":"textbox","id":"sh/9sraxkbm","slide":2,"name":"identity-quote","text":"“Absolutely. Tea is doing most of the work today.”","textPreview":"“Absolutely. Tea is doing most of the work today.”","textChars":50,"textLines":1,"bbox":[670,390,530,76]}
+{"kind":"textbox","id":"sh/8ri9ofuh","slide":2,"name":"identity-takeaway","text":"The goal is not more eloquent text. It is recognizable authorship.","textPreview":"The goal is not more eloquent text. It is recognizable authorship.","textChars":66,"textLines":1,"bbox":[42,548,1080,58]}
+{"kind":"notes","id":"nt/6ixzym","slide":2,"text":"This example is intentionally labeled illustrative; do not present it as user-study evidence. Say: ‘The innovation I care about is not simply generating a plausible answer. It is generating choices the person would plausibly choose and phrase themselves.’"}
+{"kind":"slide","id":"sl/9el7ew","slide":3,"title":"The interaction is deliberately simple","textShapes":7}
+{"kind":"textbox","id":"sh/ridwjahs","slide":3,"name":"title-3","text":"The interaction is deliberately simple","textPreview":"The interaction is deliberately simple","textChars":38,"textLines":1,"bbox":[42,34,1196,92]}
+{"kind":"textbox","id":"sh/sjmxcfyd","slide":3,"name":"page-3","text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[1184,662,54,22]}
+{"kind":"textbox","id":"sh/idkf65gb","slide":3,"name":"flow-1","text":"1  A partner speaks","textPreview":"1  A partner speaks","textChars":19,"textLines":1,"bbox":[42,170,445,52]}
+{"kind":"textbox","id":"sh/jedwfahw","slide":3,"name":"flow-2","text":"2  Four candidate replies appear","textPreview":"2  Four candidate replies appear","textChars":32,"textLines":1,"bbox":[42,264,460,72]}
+{"kind":"textbox","id":"sh/4fmx8fyh","slide":3,"name":"flow-3","text":"3  The user selects by gaze","textPreview":"3  The user selects by gaze","textChars":27,"textLines":1,"bbox":[42,378,445,58]}
+{"kind":"textbox","id":"sh/5gvehkz2","slide":3,"name":"flow-4","text":"4  The chosen reply is spoken","textPreview":"4  The chosen reply is spoken","textChars":29,"textLines":1,"bbox":[42,482,445,72]}
+{"kind":"textbox","id":"sh/u9kv2lgf","slide":3,"name":"reject-callout","text":"“None of these” is always an answer.","textPreview":"“None of these” is always an answer.","textChars":36,"textLines":1,"bbox":[42,602,780,40]}
+{"kind":"image","id":"im/kzixw36t","slide":3,"name":"demo-screenshot","alt":"VisioALS interface showing four response choices and a None of these option","bbox":[548,146,690,456]}
+{"kind":"notes","id":"nt/9el7ew","slide":3,"text":"Use this slide only to set up the live demo. Ask someone in the room to say, ‘How are you doing today?’ Then let the system run. Narrate as little as possible while it is working. Deliberately point out ‘None of these’ because rejection is part of user agency, not an error state."}
+{"kind":"slide","id":"sl/zpvor8","slide":4,"title":"“Sounds like me” has three separate layers","textShapes":11}
+{"kind":"textbox","id":"sh/7udo329k","slide":4,"name":"title-4","text":"“Sounds like me” has three separate layers","textPreview":"“Sounds like me” has three separate layers","textChars":42,"textLines":1,"bbox":[42,34,1196,92]}
+{"kind":"textbox","id":"sh/8vmpc7a5","slide":4,"name":"page-4","text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[1184,662,54,22]}
+{"kind":"shape","id":"sh/twv65crq","slide":4,"name":"pipeline-line","bbox":[72,340,1100,1]}
+{"kind":"shape","id":"sh/y5k76xs3","slide":4,"name":"dot-0","bbox":[72,331,18,18]}
+{"kind":"textbox","id":"sh/j6toz29o","slide":4,"name":"stage-0","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,276,70,30]}
+{"kind":"shape","id":"sh/k72p87a9","slide":4,"name":"dot-1","bbox":[462,331,18,18]}
+{"kind":"textbox","id":"sh/l8v61cru","slide":4,"name":"stage-1","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[462,276,70,30]}
+{"kind":"shape","id":"sh/a1kn2xs7","slide":4,"name":"dot-2","bbox":[852,331,18,18]}
+{"kind":"textbox","id":"sh/b2tovi9c","slide":4,"name":"stage-2","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[852,276,70,30]}
+{"kind":"textbox","id":"sh/ratkzqxw","slide":4,"name":"stage-title-1","text":"Learn the style","textPreview":"Learn the style","textChars":15,"textLines":1,"bbox":[42,390,310,44]}
+{"kind":"textbox","id":"sh/q90jqlwb","slide":4,"name":"stage-body-1","text":"Past writing, plus transcripts from audio or video, describe vocabulary, brevity, tone and recurring expressions.","textPreview":"Past writing, plus transcripts from audio or video, describe vocabulary, brevity, tone and recurring expressions.","textChars":113,"textLines":1,"bbox":[42,448,330,132]}
+{"kind":"textbox","id":"sh/dcb210fm","slide":4,"name":"stage-title-2","text":"Retrieve what is relevant","textPreview":"Retrieve what is relevant","textChars":25,"textLines":1,"bbox":[432,390,350,76]}
+{"kind":"textbox","id":"sh/sb2lsve1","slide":4,"name":"stage-body-2","text":"Similar past snippets help shape wording. They are style evidence—not facts about what the person wants now.","textPreview":"Similar past snippets help shape wording. They are style evidence—not facts about what the person wants now.","textChars":108,"textLines":1,"bbox":[432,476,340,112]}
+{"kind":"textbox","id":"sh/fetk3axs","slide":4,"name":"stage-title-3","text":"Adapt through choices","textPreview":"Adapt through choices","textChars":21,"textLines":1,"bbox":[822,390,360,44]}
+{"kind":"textbox","id":"sh/edk3u5w7","slide":4,"name":"stage-body-3","text":"Selections and rejections become preference rules. The language can change; the current intent still comes from the user.","textPreview":"Selections and rejections become preference rules. The language can change; the current intent still comes from the user.","textChars":121,"textLines":1,"bbox":[822,448,360,132]}
+{"kind":"notes","id":"nt/zpvor8","slide":4,"text":"Be precise here. Voice cloning is how the output sounds acoustically; linguistic identity is how the reply is worded. They are different. Also emphasize the safety boundary implemented in the prompt: profile material controls style only, never subject matter."}
+{"kind":"slide","id":"sl/yjtk51","slide":5,"title":"The user must remain the author","textShapes":14}
+{"kind":"textbox","id":"sh/upc3e5gv","slide":5,"name":"title-5","text":"The user must remain the author","textPreview":"The user must remain the author","textChars":31,"textLines":1,"bbox":[42,34,1196,92]}
+{"kind":"textbox","id":"sh/hsn290zm","slide":5,"name":"page-5","text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[1184,662,54,22]}
+{"kind":"shape","id":"sh/grelgvy1","slide":5,"name":"agency-1","bbox":[42,166,566,186]}
+{"kind":"shape","id":"sh/72lk3qhk","slide":5,"name":"agency-2","bbox":[630,166,608,186]}
+{"kind":"shape","id":"sh/61c3algz","slide":5,"name":"agency-3","bbox":[42,382,566,186]}
+{"kind":"shape","id":"sh/t43250zq","slide":5,"name":"agency-4","bbox":[630,382,608,186]}
+{"kind":"textbox","id":"sh/s3ulcvy5","slide":5,"name":"agency-label-1","text":"REJECT","textPreview":"REJECT","textChars":6,"textLines":1,"bbox":[70,194,180,26]}
+{"kind":"textbox","id":"sh/ryp4fuho","slide":5,"name":"agency-title-1","text":"None of these","textPreview":"None of these","textChars":13,"textLines":1,"bbox":[70,238,470,44]}
+{"kind":"textbox","id":"sh/qxw3mpg3","slide":5,"name":"agency-body-1","text":"Rejection generates a new set instead of forcing a bad choice.","textPreview":"Rejection generates a new set instead of forcing a bad choice.","textChars":62,"textLines":1,"bbox":[70,292,480,46]}
+{"kind":"textbox","id":"sh/sjadk7ih","slide":5,"name":"agency-label-2","text":"ACCESS","textPreview":"ACCESS","textChars":6,"textLines":1,"bbox":[660,194,180,26]}
+{"kind":"textbox","id":"sh/dkjedszm","slide":5,"name":"agency-title-2","text":"Eyes or head","textPreview":"Eyes or head","textChars":12,"textLines":1,"bbox":[660,238,480,44]}
+{"kind":"textbox","id":"sh/qhsvix0b","slide":5,"name":"agency-body-2","text":"The input mode can follow changing motor ability.","textPreview":"The input mode can follow changing motor ability.","textChars":49,"textLines":1,"bbox":[660,292,500,44]}
+{"kind":"textbox","id":"sh/ri1wb2hw","slide":5,"name":"agency-label-3","text":"FALLBACK","textPreview":"FALLBACK","textChars":8,"textLines":1,"bbox":[70,410,180,26]}
+{"kind":"textbox","id":"sh/4fqdgni5","slide":5,"name":"agency-title-3","text":"Communication continues","textPreview":"Communication continues","textChars":23,"textLines":1,"bbox":[70,454,500,44]}
+{"kind":"textbox","id":"sh/5gzu9szq","slide":5,"name":"agency-body-3","text":"Local speech recognition and system TTS reduce total dependence on cloud services.","textPreview":"Local speech recognition and system TTS reduce total dependence on cloud services.","textChars":82,"textLines":1,"bbox":[70,508,500,48]}
+{"kind":"textbox","id":"sh/it8ved0z","slide":5,"name":"agency-label-4","text":"LEARNING","textPreview":"LEARNING","textChars":8,"textLines":1,"bbox":[660,410,180,26]}
+{"kind":"textbox","id":"sh/3ehc7ihk","slide":5,"name":"agency-title-4","text":"Choices teach the system","textPreview":"Choices teach the system","textChars":24,"textLines":1,"bbox":[660,454,520,44]}
+{"kind":"textbox","id":"sh/grqdcni9","slide":5,"name":"agency-body-4","text":"Adaptation is based on what the person selects—not what the model assumes.","textPreview":"Adaptation is based on what the person selects—not what the model assumes.","textChars":74,"textLines":1,"bbox":[660,508,520,48]}
+{"kind":"notes","id":"nt/yjtk51","slide":5,"text":"This is the design-principles slide. Keep it human-centered. Avoid listing model names unless someone asks. The strongest point is that generative suggestions do not remove authorship if the person retains choice, rejection and adaptation control."}
+{"kind":"slide","id":"sl/ggdt4w","slide":6,"title":"We should evaluate the interaction, not just the model","textShapes":13}
+{"kind":"textbox","id":"sh/z25ova1g","slide":6,"name":"title-6","text":"We should evaluate the interaction, not just the model","textPreview":"We should evaluate the interaction, not just the model","textChars":54,"textLines":1,"bbox":[42,34,1196,92]}
+{"kind":"textbox","id":"sh/k3epof2l","slide":6,"name":"page-6","text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[1184,662,54,22]}
+{"kind":"textbox","id":"sh/lon6xkj6","slide":6,"name":"evidence-intro","text":"Three small, honest measurements are enough for an Innovation Area demo.","textPreview":"Three small, honest measurements are enough for an Innovation Area demo.","textChars":72,"textLines":1,"bbox":[42,138,1040,42]}
+{"kind":"shape","id":"sh/axcni5kj","slide":6,"name":"measure-1","bbox":[42,250,370,286]}
+{"kind":"shape","id":"sh/bylorql4","slide":6,"name":"measure-2","bbox":[454,250,370,286]}
+{"kind":"shape","id":"sh/czu5kv2p","slide":6,"name":"measure-3","bbox":[866,250,372,286]}
+{"kind":"textbox","id":"sh/x036t0ja","slide":6,"name":"measure-num-1","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[72,278,50,28]}
+{"kind":"textbox","id":"sh/2tsnelkn","slide":6,"name":"measure-title-1","text":"Selection","textPreview":"Selection","textChars":9,"textLines":1,"bbox":[72,332,290,44]}
+{"kind":"textbox","id":"sh/nulonql8","slide":6,"name":"measure-body-1","text":"Prompted looks to each target\n\nReport target hit rate and recalibrations.","textPreview":"Prompted looks to each target |  | Report target hit rate and recalibrations.","textChars":73,"textLines":3,"bbox":[72,394,290,112]}
+{"kind":"textbox","id":"sh/zm9gnitw","slide":6,"name":"measure-num-2","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[484,278,50,28]}
+{"kind":"textbox","id":"sh/ylgfedcb","slide":6,"name":"measure-title-2","text":"Speed","textPreview":"Speed","textChars":5,"textLines":1,"bbox":[484,332,290,44]}
+{"kind":"textbox","id":"sh/lorypsb2","slide":6,"name":"measure-body-2","text":"Question end → speech start\n\nReport median and slowest trial.","textPreview":"Question end → speech start |  | Report median and slowest trial.","textChars":61,"textLines":3,"bbox":[484,394,290,112]}
+{"kind":"textbox","id":"sh/knihgnuh","slide":6,"name":"measure-num-3","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[896,278,50,28]}
+{"kind":"textbox","id":"sh/7q9grits","slide":6,"name":"measure-title-3","text":"Identity","textPreview":"Identity","textChars":8,"textLines":1,"bbox":[896,332,300,44]}
+{"kind":"textbox","id":"sh/mp0zixc7","slide":6,"name":"measure-body-3","text":"Blind A/B: generic vs personalized\n\nAsk: “Which sounds more like you?”","textPreview":"Blind A/B: generic vs personalized |  | Ask: “Which sounds more like you?”","textChars":70,"textLines":3,"bbox":[896,394,300,112]}
+{"kind":"textbox","id":"sh/9srytsby","slide":6,"name":"evidence-footer","text":"Prototype evidence ≠ clinical evidence. Label the sample and conditions.","textPreview":"Prototype evidence ≠ clinical evidence. Label the sample and conditions.","textChars":72,"textLines":1,"bbox":[42,596,1000,42]}
+{"kind":"notes","id":"nt/ggdt4w","slide":6,"text":"If you can collect these before presenting, replace the descriptions with real numbers and state the device, lighting, number of trials and participant count. If you cannot, present this as the evaluation plan and say so. Do not call automated unit tests a user benchmark."}
+{"kind":"slide","id":"sl/7evoca","slide":7,"title":"This is a working prototype—and real-world validation is next","textShapes":6}
+{"kind":"textbox","id":"sh/7i1szmlw","slide":7,"name":"title-7","text":"This is a working prototype—and real-world validation is next","textPreview":"This is a working prototype—and real-world validation is next","textChars":61,"textLines":1,"bbox":[42,34,1196,92]}
+{"kind":"textbox","id":"sh/8jatsr2h","slide":7,"name":"page-7","text":"7","textPreview":"7","textChars":1,"textLines":1,"bbox":[1184,662,54,22]}
+{"kind":"textbox","id":"sh/ulcbu1kn","slide":7,"name":"works-title","text":"What works now","textPreview":"What works now","textChars":14,"textLines":1,"bbox":[730,174,430,44]}
+{"kind":"textbox","id":"sh/vmls36l8","slide":7,"name":"works-body","text":"• Standard webcam\n• Short calibration\n• Four gaze-selectable replies\n• Eye/head input modes\n• Personalized wording and voice","textPreview":"• Standard webcam | • Short calibration | • Four gaze-selectable replies | • Eye/head input modes | • Personalized wording and voice","textChars":124,"textLines":5,"bbox":[730,240,450,200]}
+{"kind":"textbox","id":"sh/gnutwr2d","slide":7,"name":"needs-title","text":"What still needs evidence","textPreview":"What still needs evidence","textChars":25,"textLines":1,"bbox":[730,470,470,44]}
+{"kind":"textbox","id":"sh/ho3a5w3y","slide":7,"name":"needs-body","text":"Use by people with ALS, across fatigue, posture, lighting and real conversations.","textPreview":"Use by people with ALS, across fatigue, posture, lighting and real conversations.","textChars":81,"textLines":1,"bbox":[730,532,455,78]}
+{"kind":"image","id":"im/kze9snml","slide":7,"name":"calibration-screenshot","alt":"VisioALS moving-dot webcam gaze calibration screen","bbox":[42,164,642,402]}
+{"kind":"notes","id":"nt/7evoca","slide":7,"text":"This slide buys credibility. Say clearly whether any person with ALS has tested the current version. Experts at ICCHP will care more about an honest boundary and a sensible next study than an inflated claim. Invite collaborators who can help with participatory evaluation."}
+{"kind":"slide","id":"sl/6jcwiq","slide":8,"title":"The question","textShapes":4}
+{"kind":"textbox","id":"sh/upc7yx4f","slide":8,"name":"close-label","text":"The question","textPreview":"The question","textChars":12,"textLines":1,"bbox":[42,42,280,36]}
+{"kind":"textbox","id":"sh/hc369s3q","slide":8,"name":"close-title","text":"Can fast AAC preserve not only speech—but authorship?","textPreview":"Can fast AAC preserve not only speech—but authorship?","textChars":53,"textLines":1,"bbox":[42,160,1100,252]}
+{"kind":"textbox","id":"sh/wbup07m5","slide":8,"name":"close-cta","text":"Try it. Reject a reply. Tell me where it stops feeling like the user.","textPreview":"Try it. Reject a reply. Tell me where it stops feeling like the user.","textChars":69,"textLines":1,"bbox":[42,516,920,82]}
+{"kind":"textbox","id":"sh/jelob2lw","slide":8,"name":"close-footer","text":"EyeReply / VisioALS  •  open source","textPreview":"EyeReply / VisioALS  •  open source","textChars":35,"textLines":1,"bbox":[42,634,620,30]}
+{"kind":"notes","id":"nt/6jcwiq","slide":8,"text":"Close by returning to the opening distinction between channel and authorship. Then move immediately to hands-on interaction: ‘Please try it. I am especially interested in the failures—bad suggestions, awkward gaze behavior, or anything that feels presumptuous.’"}

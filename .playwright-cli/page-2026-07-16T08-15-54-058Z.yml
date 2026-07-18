@@ -1,0 +1,5 @@
+- main "VisioALS" [ref=f1e2]:
+  - generic [active] [ref=f1e3]:
+    - generic:
+      - paragraph: Press SPACE to begin calibration
+      - generic: "Mode: Head Tracking • Press M to switch"

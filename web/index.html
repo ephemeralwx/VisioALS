@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>VisioALS</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main id="app" class="app" aria-label="VisioALS">
+    <section id="main-screen" class="main-screen" tabindex="0" aria-live="polite">
+      <button id="top-left" class="response response-top-left" data-index="0" type="button" tabindex="-1"><span></span><i></i></button>
+      <button id="top-right" class="response response-top-right" data-index="1" type="button" tabindex="-1"><span></span><i></i></button>
+      <button id="bottom-left" class="response response-bottom-left" data-index="2" type="button" tabindex="-1"><span></span><i></i></button>
+      <button id="bottom-right" class="response response-bottom-right" data-index="3" type="button" tabindex="-1"><span></span><i></i></button>
+      <button id="none-response" class="none-response" type="button" tabindex="-1"><span>None of these</span><i></i></button>
+
+      <section id="waiting-screen" class="phase-layer waiting-screen">
+        <p>Press SPACE to begin calibration</p>
+        <small id="mode-label">Mode: Eye Tracking&nbsp;&nbsp;•&nbsp;&nbsp;Press M to switch</small>
+        <small class="shortcut-hint">Press P to open Studio&nbsp;&nbsp;•&nbsp;&nbsp;Press C to recalibrate at any time</small>
+      </section>
+
+      <section id="calibration-screen" class="phase-layer calibration-screen" hidden>
+        <p id="calibration-hint">Follow the dot with your eyes</p>
+        <div id="calibration-dot" class="calibration-dot"></div>
+        <div class="calibration-progress"><i id="calibration-progress"></i></div>
+      </section>
+
+      <section id="tracking-screen" class="phase-layer tracking-screen" hidden>
+        <p id="question-text" class="question-text" hidden></p>
+        <p id="status-text" class="status-text"></p>
+        <div id="recording-indicator" class="recording-indicator" hidden><i></i><b>REC</b></div>
+      </section>
+
+      <div id="model-points" class="model-points" aria-hidden="true">
+        <i class="point lr"></i><i class="point poly"></i><i class="point svr"></i><i class="point knn"></i>
+      </div>
+      <video id="camera-video" autoplay muted playsinline hidden></video>
+    </section>
+
+    <section id="closed-screen" class="closed-screen" hidden>
+      <p>VisioALS closed.</p><small>Reload the page to start again.</small>
+    </section>
+  </main>
+
+  <div id="setup-overlay" class="window-overlay">
+    <section class="qt-window setup-window" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+      <div class="window-titlebar"><span>VisioALS</span></div>
+      <div id="setup-page-welcome" class="wizard-page">
+        <p class="step">STEP 1 OF 2</p>
+        <h1 id="setup-title">Welcome to VisioALS</h1>
+        <p class="subtitle">Adaptive communication for ALS patients.<br>We'll get you set up in just a moment.</p>
+        <p class="wizard-item">1.&nbsp;&nbsp; Check that your webcam is working</p>
+        <p class="wizard-hint">Press Next to begin</p>
+      </div>
+      <div id="setup-page-camera" class="wizard-page" hidden>
+        <p class="step">STEP 2 OF 2</p>
+        <h1>Webcam check</h1>
+        <p class="subtitle">We need camera access for tracking.</p>
+        <div id="setup-camera-frame" class="setup-camera-frame"><video id="setup-camera-video" autoplay muted playsinline></video><span>Detecting camera...</span></div>
+        <p id="setup-camera-status" class="camera-status"></p>
+      </div>
+      <footer class="wizard-buttons">
+        <button id="setup-quit" class="qt-button secondary" type="button">Quit</button>
+        <span></span>
+        <button id="setup-back" class="qt-button secondary" type="button" hidden>Back</button>
+        <button id="setup-next" class="qt-button" type="button">Continue</button>
+      </footer>
+    </section>
+  </div>
+
+  <div id="loading-overlay" class="window-overlay" hidden>
+    <section class="qt-window download-window" role="dialog" aria-modal="true">
+      <div class="window-titlebar"><span>VisioALS</span></div>
+      <div class="download-content"><h2>Downloading tracking model</h2><p>This only happens once. It'll just be a moment.</p><div><i id="model-progress"></i></div><small id="model-status">Preparing download...</small></div>
+    </section>
+  </div>
+
+  <div id="studio-overlay" class="window-overlay dark-overlay" hidden>
+    <section class="studio-window" role="dialog" aria-modal="true" aria-labelledby="studio-title">
+      <aside class="studio-rail">
+        <h2>Studio</h2>
+        <nav><div class="active"><i>01</i><b>Identity</b></div><div><i>02</i><b>Sources</b></div><div><i>03</i><b>Analysis</b></div></nav>
+        <footer><span>Open studio</span><kbd>P</kbd></footer>
+      </aside>
+      <div class="studio-main">
+        <div class="studio-title-row"><div><h1 id="studio-title">Patient profile</h1><p>Preserve the patient's writing style and voice.</p></div></div>
+        <div class="studio-fields">
+          <label>Name<input id="studio-name" type="text" placeholder="e.g. Alex Morgan"><select id="studio-picker"><option value="">Create a new profile…</option></select></label>
+        </div>
+        <section class="studio-sources">
+          <header><h3>Writing sample</h3><span></span><label class="studio-action">＋&nbsp; Add files<input id="studio-files" type="file" accept=".txt,.json,.csv,audio/*,video/*" multiple hidden></label><button id="studio-record" class="studio-action" type="button">●&nbsp; Record voice</button></header>
+          <p id="studio-source-status" class="studio-source-status" hidden></p>
+          <textarea id="studio-samples" placeholder="Paste messages, emails, notes, or any natural writing…"></textarea>
+        </section>
+        <section class="studio-progress-card"><header><span>Ready to shape the profile</span><b id="studio-progress-value">Ready</b></header><div id="studio-segments" class="studio-segments"></div><p id="studio-status">Name the patient and add at least one source to begin.</p><textarea id="studio-summary" readonly hidden></textarea></section>
+        <footer class="studio-buttons"><button id="studio-cancel" type="button">Cancel</button><button id="studio-generate" class="studio-primary" type="button" disabled>Analyze profile&nbsp;&nbsp; →</button><button id="studio-use" class="studio-primary" type="button" hidden>Use this profile&nbsp;&nbsp; →</button></footer>
+      </div>
+    </section>
+  </div>
+
+  <div id="preferences-overlay" class="window-overlay" hidden>
+    <section class="qt-window preferences-window" role="dialog" aria-modal="true" aria-labelledby="preferences-title">
+      <div class="window-titlebar"><span>Learned Preferences</span></div>
+      <div class="preferences-content"><h2 id="preferences-title">Preference Rules</h2><p id="preferences-patient">Patient:</p><small id="preferences-meta">No preferences learned yet.</small><div id="preferences-rules"></div><footer><button id="clear-preferences" class="qt-button secondary" type="button" hidden>Clear Preferences</button><span></span><button id="close-preferences" class="qt-button" type="button">Close</button></footer></div>
+    </section>
+  </div>
+
+  <div id="message-overlay" class="window-overlay" hidden>
+    <section class="qt-window message-window" role="alertdialog" aria-modal="true"><div class="window-titlebar"><span>VisioALS</span></div><div><p id="message-text"></p><button id="message-ok" class="qt-button" type="button">OK</button></div></section>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

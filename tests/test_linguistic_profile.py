@@ -69,7 +69,36 @@ class TestRegisterTone:
         assert register["contraction_rate"] > 0
 
 
+class TestRegionalLanguage:
+    def test_detects_repeated_british_slang(self):
+        from linguistic_profile import LinguisticProfileExtractor
+
+        extractor = LinguisticProfileExtractor([
+            "Alright mate, fancy a cuppa?",
+            "Cheers mate, I'm absolutely knackered.",
+            "Bit of a faff, innit?",
+            "Nah, sack that off. I'm shattered.",
+        ], "http://fake-api")
+
+        regional = extractor._extract_regional_language()
+
+        assert regional["detected_variety"] == "colloquial British English"
+        assert "mate" in regional["markers"]
+        assert "cuppa" in regional["markers"]
+
+
 class TestSignaturePhrases:
+    def test_repetition_inside_one_essay_is_not_a_catchphrase(self):
+        from linguistic_profile import LinguisticProfileExtractor
+
+        extractor = LinguisticProfileExtractor([
+            "Writing is hard. Writing is slow. Writing is demanding. Writing is worthwhile."
+        ], "http://fake-api")
+        extractor._load_spacy()
+
+        phrases = extractor._extract_signature_phrases()
+        assert "writing is" not in phrases["catchphrases"]
+
     def test_fillers_detected(self, extractor_small):
         extractor_small._load_spacy()
         phrases = extractor_small._extract_signature_phrases()
@@ -108,6 +137,8 @@ class TestFullExtraction:
             "tone_description": "direct and warm",
             "emotional_valence": "positive",
             "personality_notes": "practical, no-nonsense",
+            "language_variety": "colloquial British English",
+            "slang_and_regionalisms": ["mate", "cheers"],
         }
         mock_post.return_value = mock_response
 
@@ -121,3 +152,5 @@ class TestFullExtraction:
         assert "summary" in profile
         assert isinstance(profile["summary"], str)
         assert len(profile["summary"]) > 10
+        assert "colloquial British English" in profile["summary"]
+        assert "mate" in profile["summary"]
