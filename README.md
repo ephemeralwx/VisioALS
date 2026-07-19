@@ -4,7 +4,7 @@
 
 VisioALS uses a standard webcam (no special hardware!) to let patients select AI-generated responses just by looking at the screen. Over time it learns the patient's preferences and preserves their unique voice so responses sound like *them*, not a machine.
 
-<video src="https://github.com/user-attachments/assets/a585578b-41c8-445c-963a-4a036e3e8994" width="100%" controls></video>
+<video src="https://github.com/user-attachments/assets/1184c544-43ea-4be5-8b80-68aae07f99c7" width="100%" controls></video>
 
 ---
 
